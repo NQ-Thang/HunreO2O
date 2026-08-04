@@ -1,4 +1,4 @@
-package vn.edu.crs.courseservice.entity;
+package vn.edu.crs.course_service.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
