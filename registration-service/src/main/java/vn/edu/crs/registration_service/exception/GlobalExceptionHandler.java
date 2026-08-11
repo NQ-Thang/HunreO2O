@@ -1,4 +1,4 @@
-package vn.edu.crs.course_service.exception;
+package vn.edu.crs.registration_service.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import vn.edu.crs.course_service.dto.CourseDTO;
 import vn.edu.crs.course_service.service.CourseService;
 
@@ -18,8 +20,14 @@ public class CourseController {
     private final CourseService courseService;
 
     @GetMapping
-    public ResponseEntity<List<CourseDTO>> getAll() {
-        return ResponseEntity.ok(courseService.getAll());
+    public ResponseEntity<Page<CourseDTO>> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer page,
+            Pageable pageable) {
+        if (page != null && page < 0) {
+            throw new IllegalArgumentException("Page index must not be less than zero");
+        }
+        return ResponseEntity.ok(courseService.search(keyword, pageable));
     }
 
     @GetMapping("/{id}")
