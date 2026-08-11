@@ -45,7 +45,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                System.out.println("SUCCESSFULLY AUTHENTICATED: " + username);
             } catch (Exception e) {
+                e.printStackTrace();
                 SecurityContextHolder.clearContext();
             }
         }
