@@ -1,6 +1,6 @@
 # Course Registration System (CRS) - Microservices Architecture
 
-**Người thực hiện:** Nguyễn Văn Chiến  
+**Người thực hiện:** Nguyễn Văn Chiến (NVC)
 
 Hệ thống đăng ký môn học CRS (Course Registration System) là một ứng dụng Fullstack được xây dựng hoàn toàn dựa trên kiến trúc Microservices hiện đại, kết hợp với giao diện Frontend ReactJS. 
 
