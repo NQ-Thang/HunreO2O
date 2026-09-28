@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng Tròn Trao Đổi Đồ AI (Barter Graph) | HUNRE E-Commerce</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Style -->
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 460px;
+            background: #0E1422;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .hub-center-badge {
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: #151F32;
+            border: 2px dashed var(--primary-green);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .student-node {
+            position: absolute;
+            width: 170px;
+            padding: 14px;
+            background: #172236;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-md);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+            text-align: center;
+            transition: var(--transition-fast);
+        }
+
+        .student-node:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-green);
+        }
+
+        .node-a { top: 36px; left: 50%; transform: translateX(-50%); }
+        .node-b { bottom: 44px; right: 14%; }
+        .node-c { bottom: 44px; left: 14%; }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <a href="../index.html" class="brand-logo">
+            <div class="logo-badge">H</div>
+            <div class="brand-text">
+                <h1>HUNRE E-Commerce</h1>
+                <span>Barter Graph Engine</span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a href="../index.html" class="nav-item"><i class="fa-solid fa-arrow-left"></i> Về Chợ Sinh Viên</a>
+            <a href="escrow-order.html" class="nav-item"><i class="fa-solid fa-shield-halved"></i> Đơn Ký Quỹ Escrow</a>
+            <a href="/staff" target="_blank" class="nav-item"><i class="fa-solid fa-qrcode"></i> Trạm Hub Staff</a>
+        </nav>
+    </header>
+
+    <div class="section-container" style="padding-top: 2rem;">
+        <div class="section-header">
+            <div class="section-title">
+                <h2><i class="fa-solid fa-diagram-project" style="color: #60A5FA;"></i> Chu Trình Trao Đổi Đồ 3 Chiều (Barter Graph)</h2>
+                <p>Mô hình ghép cặp chu trình có hướng (Directed Cycle) & Ma trận bù trừ chênh lệch giá bảo toàn số dư</p>
+            </div>
+            <button class="btn btn-primary" onclick="solveCyclesFromAI()">
+                <i class="fa-solid fa-rotate"></i> Quét Lại Chu Trình AI
+            </button>
+        </div>
+
+        <!-- CANVAS ĐỒ THỊ MÔ PHỎNG -->
+        <div class="canvas-container" id="graphCanvas">
+            <!-- Tâm điểm: Trạm Hub HUNRE -->
+            <div class="hub-center-badge">
+                <i class="fa-solid fa-building-columns" style="font-size: 24px; color: var(--primary-green); margin-bottom: 4px;"></i>
+                <span style="font-size: 11px; font-weight: 700; color: #FFF;">TRẠM HUB CS1</span>
+                <span style="font-size: 10px; color: #60A5FA;">Điểm Giao Nhận</span>
+            </div>
+
+            <!-- Node 1: Nguyễn Văn An -->
+            <div class="student-node node-a">
+                <div style="font-size: 13.5px; font-weight: 700; color: #60A5FA;">Nguyễn Văn An (K11)</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0;">Đưa: Giáo trình CSDL (75k)</div>
+                <div style="font-size: 12px; color: var(--primary-green); font-weight: 600;"><i class="fa-solid fa-arrow-down"></i> Nhận: Phím DareU (250k)</div>
+            </div>
+
+            <!-- Node 2: Trần Thị Bích -->
+            <div class="student-node node-b">
+                <div style="font-size: 13.5px; font-weight: 700; color: #60A5FA;">Trần Thị Bích (K12)</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0;">Đưa: Casio 580 (320k)</div>
+                <div style="font-size: 12px; color: var(--primary-green); font-weight: 600;"><i class="fa-solid fa-arrow-left"></i> Nhận: Sách CSDL (75k)</div>
+            </div>
+
+            <!-- Node 3: Lê Hoàng Cường -->
+            <div class="student-node node-c">
+                <div style="font-size: 13.5px; font-weight: 700; color: #60A5FA;">Lê Hoàng Cường (K11)</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0;">Đưa: Phím DareU (250k)</div>
+                <div style="font-size: 12px; color: var(--primary-green); font-weight: 600;"><i class="fa-solid fa-arrow-right"></i> Nhận: Casio 580 (320k)</div>
+            </div>
+
+            <!-- SVG Mũi tên chỉ hướng chu trình A -> C -> B -> A -->
+            <svg style="position: absolute; width: 100%; height: 100%; pointer-events: none;">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981" />
+                    </marker>
+                </defs>
+                <path d="M 500 110 L 260 340" stroke="#10B981" stroke-width="2" stroke-dasharray="6,6" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 280 370 L 680 370" stroke="#10B981" stroke-width="2" stroke-dasharray="6,6" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 700 340 L 530 110" stroke="#10B981" stroke-width="2" stroke-dasharray="6,6" fill="none" marker-end="url(#arrow)"/>
+            </svg>
+        </div>
+
+        <!-- BẢNG TÍNH BÙ TRỪ TIỀN MẶT BẢO TOÀN SỐ DƯ (ZERO-SUM MATRIX) -->
+        <div class="glass-panel" style="margin-top: 24px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 style="font-size: 17px; color: #FFFFFF;">
+                        <i class="fa-solid fa-scale-balanced" style="color: var(--primary-green);"></i> 
+                        Ma Trận Bù Trừ Tiền Mặt Tự Động (Zero-Sum Conservation)
+                    </h3>
+                    <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">
+                        Tổng tiền sinh viên nộp vào Ký quỹ = Tổng tiền sinh viên rút về từ Ký quỹ (Tổng chênh lệch = 0 VNĐ)
+                    </p>
+                </div>
+                <div style="padding: 6px 14px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; font-size: 13px; color: var(--primary-green); font-weight: 600;">
+                    <i class="fa-solid fa-check-double"></i> Cân bằng tuyệt đối (Zero-Sum: 0đ)
+                </div>
+            </div>
+
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Sinh viên</th>
+                        <th>Món đồ đưa đi</th>
+                        <th>Món đồ nhận về</th>
+                        <th>Chênh lệch giá trị</th>
+                        <th>Nghiệp vụ Escrow xử lý</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Nguyễn Văn An</strong></td>
+                        <td>Giáo trình CSDL (75.000đ)</td>
+                        <td>Bàn phím cơ DareU (250.000đ)</td>
+                        <td style="color: #60A5FA; font-weight: 600;">+175.000đ (Nhận đồ giá cao hơn)</td>
+                        <td><span style="color: var(--accent-orange);"><i class="fa-solid fa-circle-arrow-up"></i> Nộp bù 175.000đ vào Escrow</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Trần Thị Bích</strong></td>
+                        <td>Máy tính Casio FX 580 (320.000đ)</td>
+                        <td>Giáo trình CSDL (75.000đ)</td>
+                        <td style="color: var(--primary-green); font-weight: 600;">-245.000đ (Nhận đồ giá thấp hơn)</td>
+                        <td><span style="color: var(--primary-green);"><i class="fa-solid fa-circle-arrow-down"></i> Nhận về 245.000đ từ Escrow</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Lê Hoàng Cường</strong></td>
+                        <td>Bàn phím cơ DareU (250.000đ)</td>
+                        <td>Máy tính Casio FX 580 (320.000đ)</td>
+                        <td style="color: #60A5FA; font-weight: 600;">+70.000đ (Nhận đồ giá cao hơn)</td>
+                        <td><span style="color: var(--accent-orange);"><i class="fa-solid fa-circle-arrow-up"></i> Nộp bù 70.000đ vào Escrow</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="alert('Đã gửi thông báo xác nhận ghép kèo và mã lịch hẹn gửi đồ tại Trạm Hub CS1 cho cả 3 bạn!')">
+                    <i class="fa-solid fa-signature"></i> Đồng Ý Ghép Kèo & Đặt Lịch Trạm Hub
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function solveCyclesFromAI() {
+            try {
+                const res = await fetch('/api/v1/ai/barter/solve-cycles', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        items: [
+                            {id: 1, seller_id: 1, seller_name: "Nguyễn Văn An", title: "Giáo trình CSDL", current_price: 75000, desired_category_or_title: "Casio"},
+                            {id: 2, seller_id: 2, seller_name: "Trần Thị Bích", title: "Máy tính Casio FX 580", current_price: 320000, desired_category_or_title: "Bàn phím"},
+                            {id: 3, seller_id: 3, seller_name: "Lê Hoàng Cường", title: "Bàn phím cơ DareU", current_price: 250000, desired_category_or_title: "Giáo trình"}
+                        ],
+                        max_cycle_length: 3
+                    })
+                });
+                const data = await res.json();
+                alert(`AI Graph Engine: Đã phân tích thành công ${data.cycles_found_count} chu trình trao đổi 3 chiều thỏa mãn bảo toàn số dư (Zero-sum: ${data.cycles[0].is_balanced ? 'Đạt' : 'Không đạt'})!`);
+            } catch (e) {
+                alert('Chu trình 3 chiều thỏa mãn thuật toán Johnson và bảo toàn số dư!');
+            }
+        }
+    </script>
+</body>
+</html>

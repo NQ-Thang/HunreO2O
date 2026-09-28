@@ -1,0 +1,165 @@
+version: '3.8'
+
+networks:
+  hunre-network:
+    driver: bridge
+
+volumes:
+  hunre-mysql-data:
+  hunre-redis-data:
+
+services:
+  # ==========================================
+  # DATABASE & CACHE INFRASTRUCTURE
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: hunre-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hunre_ecommerce
+    ports:
+      - "3307:3306"
+    volumes:
+      - hunre-mysql-data:/var/lib/mysql
+      - ./shared/database-init/init-schema.sql:/docker-entrypoint-initdb.d/init-schema.sql
+    networks:
+      - hunre-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: hunre-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - hunre-redis-data:/data
+    networks:
+      - hunre-network
+
+  # ==========================================
+  # API GATEWAY & REVERSE PROXY
+  # ==========================================
+  gateway:
+    image: nginx:alpine
+    container_name: hunre-gateway
+    restart: always
+    ports:
+      - "8000:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/student-portal:/usr/share/nginx/html/student:ro
+      - ./frontend/hub-staff-portal:/usr/share/nginx/html/staff:ro
+    depends_on:
+      - auth-service
+      - product-service
+      - escrow-service
+      - hub-service
+      - ai-engine
+    networks:
+      - hunre-network
+
+  # ==========================================
+  # MICROSERVICES CORE
+  # ==========================================
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: hunre-auth-service
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: hunre_ecommerce
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - hunre-network
+
+  product-service:
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
+    container_name: hunre-product-service
+    restart: always
+    ports:
+      - "8002:8002"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: hunre_ecommerce
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      AI_SERVICE_URL: http://ai-engine:8005
+    volumes:
+      - ./services/product-service:/var/www
+    depends_on:
+      - mysql
+      - ai-engine
+    networks:
+      - hunre-network
+
+  escrow-service:
+    build:
+      context: ./services/escrow-service
+      dockerfile: Dockerfile
+    container_name: hunre-escrow-service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: hunre_ecommerce
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - hunre-network
+
+  hub-service:
+    build:
+      context: ./services/hub-service
+      dockerfile: Dockerfile
+    container_name: hunre-hub-service
+    restart: always
+    ports:
+      - "8004:8004"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: hunre_ecommerce
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    depends_on:
+      - mysql
+    networks:
+      - hunre-network
+
+  # ==========================================
+  # AI INTELLIGENCE MICROSERVICE (PYTHON FASTAPI)
+  # ==========================================
+  ai-engine:
+    build:
+      context: ./services/ai-engine
+      dockerfile: Dockerfile
+    container_name: hunre-ai-engine
+    restart: always
+    ports:
+      - "8005:8005"
+    environment:
+      PYTHONUNBUFFERED: 1
+      APP_ENV: production
+    networks:
+      - hunre-network

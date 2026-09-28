@@ -18,6 +18,7 @@ public class RegistrationController {
 
     @PostMapping
     public ResponseEntity<Registration> register(@Valid @RequestBody RegistrationRequestDTO requestDTO) {
+        System.out.println("HIT REGISTER ENDPOINT WITH DTO: " + requestDTO);
         Registration registration = registrationService.register(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(registration);
     }
