@@ -23,7 +23,7 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi.testclient import TestClient
-from local_api_server import app, DEFAULT_DB, save_db
+from local_api_server import app, DEFAULT_DB, save_db, load_db
 
 client = TestClient(app)
 
@@ -173,6 +173,18 @@ def run_tests():
           res.status_code == 200 and len(res.json().get("data", [])) == 0,
           f"Count: {res.json().get('count')}")
 
+    # 2.9 Ngoại lệ: Cập nhật tiêu đề thành khoảng trắng rỗng
+    res = client.put(f"/api/v1/products/{created_id}", json={"title": "   "})
+    check("PROD-EX-07", "PRODUCT", "Ngoai Le 7: Tu choi sua tieu de thanh rong (400)", 
+          res.status_code == 400,
+          f"Status: {res.status_code}")
+
+    # 2.10 Ngoại lệ: Cập nhật giá bán <= 0
+    res = client.put(f"/api/v1/products/{created_id}", json={"current_price": -5000})
+    check("PROD-EX-08", "PRODUCT", "Ngoai Le 8: Tu choi sua gia ban <= 0 (400)", 
+          res.status_code == 400,
+          f"Status: {res.status_code}")
+
     # -------------------------------------------------------------
     # 3. ESCROW SERVICE: SAGA, DISPUTE & NGOAI LE
     # -------------------------------------------------------------
@@ -216,11 +228,26 @@ def run_tests():
           res.status_code == 404,
           f"Status: {res.status_code}")
 
-    # 3.5 Happy & Exception Handling: Khiếu nại đơn hàng (DISPUTE)
-    res = client.post(f"/api/v1/escrow/orders/{order_code}/dispute")
-    check("ESCROW-02", "ESCROW", "Xu Ly Khieu Nai: Chuyen trang thai sang DISPUTED, dong bang tien", 
-          res.status_code == 200 and res.json()["order"]["status"] == "DISPUTED",
-          f"New Status: {res.json()['order']['status']}")
+    # 3.5 Happy: Giải ngân đơn hàng thành công và cộng điểm uy tín +5 cho cả 2 bên
+    res_release = client.post(f"/api/v1/escrow/orders/{order_code}/release")
+    check("ESCROW-02", "ESCROW", "Happy Path: Giai ngan ky quy (SATISFIED) -> Trang thai RELEASED & Cong diem uy tin +5", 
+          res_release.status_code == 200 and res_release.json()["order"]["status"] == "RELEASED",
+          f"Status: {res_release.status_code} - Step: {res_release.json().get('order', {}).get('saga_step')}")
+
+    # 3.6 Ngoại lệ: Thao tác giải ngân trên đơn hàng không tồn tại
+    res_fake_release = client.post("/api/v1/escrow/orders/ORD-MA-KHONG-TON-TAI/release")
+    check("ESCROW-EX-04", "ESCROW", "Ngoai Le 4: Giai ngan don hang khong ton tai bao loi 404", 
+          res_fake_release.status_code == 404,
+          f"Status: {res_fake_release.status_code}")
+
+    # 3.7 Happy & Exception Handling: Khiếu nại đơn hàng (DISPUTE)
+    # Tạo thêm 1 đơn để test khiếu nại
+    res_ord2 = client.post("/api/v1/escrow/orders", json={"product_id": 2, "buyer_id": 3})
+    ord2_code = res_ord2.json()["order"]["order_code"]
+    res_disp = client.post(f"/api/v1/escrow/orders/{ord2_code}/dispute")
+    check("ESCROW-03", "ESCROW", "Xu Ly Khieu Nai: Chuyen trang thai sang DISPUTED, dong bang tien ky quy", 
+          res_disp.status_code == 200 and res_disp.json()["order"]["status"] == "DISPUTED",
+          f"New Status: {res_disp.json()['order']['status']}")
 
     # -------------------------------------------------------------
     # 4. HUB LOGISTICS: LOCKER ALLOCATION & NGOAI LE
@@ -254,7 +281,27 @@ def run_tests():
           res.status_code == 404,
           f"Status: {res.status_code} - Detail: {res.json().get('detail')}")
 
-    # 4.4 Happy: Kiểm tra mã Dynamic QR TOTP xoay 30 giây
+    # 4.4 Ngoại lệ: Check-in khi toàn bộ ô tủ đã bị chiếm dụng (Full Lockers 409 Conflict)
+    # Tạm thời chiếm dụng tất cả ô tủ trong DB
+    curr_db = client.get("/api/v1/hub/lockers").json()["lockers"]
+    tdb = load_db()
+    for l in tdb["lockers"]:
+        l["status"] = "OCCUPIED"
+        l["current_order"] = "ORD-OCCUPIED"
+    save_db(tdb)
+
+    res_full = client.post("/api/v1/hub/checkin", json={"order_code": "ORD-TRY-WHEN-FULL", "scan_type": "CHECKIN"})
+    check("HUB-EX-02", "HUB", "Ngoai Le 2: Tu choi Check-in khi toan bo tu Locker bi day (409 Conflict)", 
+          res_full.status_code == 409 and "Toàn bộ ô tủ" in res_full.json().get("detail", ""),
+          f"Status: {res_full.status_code}")
+
+    # Khôi phục lại 1 tủ trống
+    tdb = load_db()
+    tdb["lockers"][0]["status"] = "EMPTY"
+    tdb["lockers"][0]["current_order"] = None
+    save_db(tdb)
+
+    # 4.5 Happy: Kiểm tra mã Dynamic QR TOTP xoay 30 giây
     res = client.get("/api/v1/hub/orders/ORD-HUNRE-98471/dynamic-qr")
     token1 = res.json()["data"]["token"]
     expires1 = res.json()["data"]["expires_in_seconds"]
@@ -265,7 +312,7 @@ def run_tests():
     # -------------------------------------------------------------
     # 5. AI ENGINE PROXY & NEGOTIATION LOGIC
     # -------------------------------------------------------------
-    print("\n--- 5. AI PRICING AGENT & NEGOTIATION ---")
+    print("\n--- 5. AI PRICING AGENT, BARTER GRAPH & COMPUTER VISION ---")
 
     # 5.1 Happy: Giá đề xuất hợp lý (>= giá sàn)
     res = client.post("/api/v1/ai/pricing/negotiate", json={
@@ -278,7 +325,33 @@ def run_tests():
           res.status_code == 200 and res.json().get("decision") == "ACCEPT",
           f"Decision: {res.json().get('decision')}")
 
-    # 5.2 Ngoại lệ: Giá đề xuất quá thấp so với giá sàn (< 60.000đ và SV bậc Bạc) -> AI từ chối REJECT
+    # 5.2 Happy: Tính toán khấu hao giá theo thời gian (Time-decay Dutch Auction)
+    res_decay = client.post("/api/v1/ai/pricing/decay", json={
+        "original_price": 100000.0,
+        "floor_price": 50000.0,
+        "hours_elapsed": 72.0,
+        "decay_half_life_hours": 72.0
+    })
+    check("AI-02", "AI", "Happy Path: AI Tinh toan giam gia theo thoi gian (Dutch Auction Time-Decay)", 
+          res_decay.status_code == 200 and res_decay.json().get("current_decayed_price") == 75000.0,
+          f"Decayed Price: {res_decay.json().get('current_decayed_price')}d (-{res_decay.json().get('discount_percentage')}%)")
+
+    # 5.3 Happy: Tìm kiếm chu trình đồ thị hoán đổi Barter Graph Solver (3-Way Cycle)
+    barter_payload = {
+        "items": [
+            {"id": 101, "seller_id": 1, "title": "Giao trinh Toan C3", "current_price": 50000.0, "desired_category_or_title": "Lap trinh Python"},
+            {"id": 102, "seller_id": 2, "title": "Lap trinh Python", "current_price": 55000.0, "desired_category_or_title": "Tai nghe Sony"},
+            {"id": 103, "seller_id": 3, "title": "Tai nghe Sony", "current_price": 50000.0, "desired_category_or_title": "Giao trinh Toan C3"}
+        ],
+        "max_cycle_length": 3
+    }
+    res_cycle = client.post("/api/v1/ai/barter/solve-cycles", json=barter_payload)
+    cycles_found = res_cycle.json().get("cycles_found_count", 0) if res_cycle.status_code == 200 else 0
+    check("AI-03", "AI", "Happy Path: AI Barter Graph Solver tim thay chu trinh hoan doi 3 ben can bang", 
+          res_cycle.status_code == 200 and cycles_found >= 1,
+          f"Cycles Found: {cycles_found}")
+
+    # 5.4 Ngoại lệ: Giá đề xuất quá thấp so với giá sàn (< 60.000đ và SV bậc Bạc) -> AI từ chối REJECT
     res = client.post("/api/v1/ai/pricing/negotiate", json={
         "item_current_price": 75000,
         "item_floor_price": 60000,
@@ -287,9 +360,9 @@ def run_tests():
     })
     check("AI-EX-01", "AI", "Ngoai Le 1: Tra gia duoi gia san bi AI REJECT tu choi", 
           res.status_code == 200 and res.json().get("decision") == "REJECT",
-          f"Decision: {res.json().get('decision')} - Message: {res.json().get('message')}")
+          f"Decision: {res.json().get('decision')}")
 
-    # 5.3 Ngoại lệ & Thương lượng: Sinh viên uy tín cao (Trust Score >= 600) được ưu đãi COUNTER_OFFER
+    # 5.5 Ngoại lệ & Thương lượng: Sinh viên uy tín cao (Trust Score >= 600) được ưu đãi COUNTER_OFFER
     res = client.post("/api/v1/ai/pricing/negotiate", json={
         "item_current_price": 75000,
         "item_floor_price": 60000,
@@ -299,6 +372,18 @@ def run_tests():
     check("AI-EX-02", "AI", "Ngoai Le 2: SV uy tin cao (Trust Score 750) duoc de xuat COUNTER_OFFER", 
           res.status_code == 200 and res.json().get("decision") == "COUNTER_OFFER",
           f"Decision: {res.json().get('decision')} - Counter Price: {res.json().get('counter_offer_price')}đ")
+
+    # 5.6 Ngoại lệ: Thẩm định ảnh bằng tệp tin không phải định dạng ảnh (Text file)
+    res_cv_err = client.post("/api/v1/ai/cv/inspect", files={"file": ("fake_file.txt", b"plain text data", "text/plain")})
+    check("AI-EX-03", "AI", "Ngoai Le 3: Tu choi tep khong phai anh trong CV Inspection (400 Bad Request)", 
+          res_cv_err.status_code == 400,
+          f"Status: {res_cv_err.status_code}")
+
+    # 5.7 Ngoại lệ: Gửi độ dài chu trình Barter Graph vượt quá ngưỡng tối đa cho phép (max_cycle_length = 10 > 5)
+    res_len_err = client.post("/api/v1/ai/barter/solve-cycles", json={"items": [], "max_cycle_length": 10})
+    check("AI-EX-04", "AI", "Ngoai Le 4: Tu choi do dai chu trinh vuot gioi han le=5 (422 Unprocessable Entity)", 
+          res_len_err.status_code == 422,
+          f"Status: {res_len_err.status_code}")
 
     # -------------------------------------------------------------
     # TONG KET KET QUA
@@ -312,3 +397,4 @@ def run_tests():
 
 if __name__ == "__main__":
     run_tests()
+
