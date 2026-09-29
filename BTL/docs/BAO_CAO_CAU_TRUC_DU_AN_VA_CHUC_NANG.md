@@ -302,22 +302,37 @@ BTL/
    - Chọn thử nhanh các ảnh mẫu: *Sách CSDL (94%)*, *Casio 580 (98%)* hoặc bấm tải ảnh bất kỳ từ máy tính của bạn.
    - Xem kết quả AI phân tích: Tỷ lệ trầy xước, dán nhãn Grade S/A/B và chữ ký dHash xác thực không phải ảnh mạng.
 
-3. **Thao tác 3 - Đàm Phán Trả Giá Tự Động Với AI:**
+3. **Thao tác 3 - Tìm Kiếm, Sửa & Gỡ Tin Đăng (Quản Trị CRUD):**
+   - **Tìm kiếm:** Gõ từ khóa vào ô tìm kiếm (ví dụ: `Casio`, `CSDL`, `DareU`), sàn sẽ lọc kết quả thời gian thực ngay lập tức.
+   - **Chỉnh sửa (Sửa tin):** Bấm nút **"Sửa tin"** trên bất kỳ sản phẩm nào -> Modal mở ra cho phép cập nhật tiêu đề, giá bán hiện tại, giá sàn và mô tả -> Bấm **"Lưu Thay Đổi"** để cập nhật ngay lập tức.
+   - **Gỡ tin (Xóa):** Bấm nút **"Xóa"** màu đỏ trên thẻ sản phẩm -> Xác nhận hộp thoại -> Sản phẩm được gỡ bỏ khỏi sàn giao dịch.
+
+4. **Thao tác 4 - Đàm Phán Trả Giá Tự Động Với AI & Tạo Đơn Ký Quỹ:**
    - Tại bất kỳ sản phẩm nào (ví dụ Giáo trình CSDL 75.000đ), bấm nút **"Trả Giá AI"**.
    - Nhập mức giá đề xuất (ví dụ: `65000`), bấm **"Gửi Đề Xuất Giá"**.
-   - AI Agent sẽ đối chiếu giá sàn và điểm uy tín để phản hồi chấp nhận hoặc đưa ra mức giá tốt nhất, kèm nút dẫn trực tiếp tới Đơn Ký Quỹ.
+   - AI Agent sẽ đối chiếu giá sàn và điểm uy tín để phản hồi chấp nhận hoặc đưa ra mức giá tốt nhất.
+   - Khi được chấp nhận giá, bấm nút **"Đặt Cọc Ký Quỹ Đơn Này"**: Hệ thống tự động tạo mã đơn ký quỹ mới và dẫn thẳng sang trang Quản lý Ký Quỹ Escrow!
 
-4. **Thao tác 4 - Xem Vòng Tròn Đổi Đồ 3 Chiều & Bảo Toàn Số Dư:**
+5. **Thao tác 5 - Xem Vòng Tròn Đổi Đồ 3 Chiều & Đăng Ký Nhu Cầu Mới:**
    - Bấm vào menu **"Trao Đổi Đồ AI"** (hoặc truy cập `http://localhost:8000/pages/barter-graph.html`).
    - Xem sơ đồ đồ thị 3 sinh viên trao đổi chéo xoay quanh Trạm Hub CS1.
    - Bấm **"Quét Lại Chu Trình AI"**: Hệ thống sẽ gọi trực tiếp sang FastAPI giải thuật toán Johnson và hiển thị bảng Ma Trận Bù Trừ Tiền Mặt với tổng chênh lệch cân bằng tuyệt đối = 0đ (Zero-Sum).
+   - Bấm **"Đăng Ký Nhu Cầu Đổi Đồ Của Bạn"**: Nhập đồ đang có và đồ muốn nhận để nạp thêm cạnh vào đồ thị.
 
-5. **Thao tác 5 - Xem Tiến Trình Ký Quỹ & Dynamic QR TOTP 30s:**
+6. **Thao tác 6 - Xem Tiến Trình Ký Quỹ, Giải Ngân & Dynamic QR TOTP 30s:**
    - Bấm vào menu **"Đơn Ký Quỹ Escrow"** (hoặc truy cập `http://localhost:8000/pages/escrow-order.html`).
    - Quan sát Stepper 7 bước theo dõi dòng tiền đóng băng và vị trí lưu kho tại ô tủ `LOCKER-M-01`.
    - Xem đồng hồ đếm ngược và mã Dynamic QR tự động xoay mới mỗi 30 giây kèm mã băm bảo mật HMAC-SHA256.
+   - Bấm nút **"Hài Lòng & Giải Ngân"**: Hệ thống chuyển bước sang Hoàn tất (RELEASED) và tự động cộng +5 Điểm Uy Tín cho cả người mua và người bán.
 
-6. **Thao tác 6 - Xem Cổng Quản Lý Nhân Viên Trạm Hub Đoàn Trường:**
+7. **Thao tác 7 - Xem Cổng Quản Lý Nhân Viên Trạm Hub Đoàn Trường:**
    - Bấm vào menu **"Trạm Hub Staff"** (hoặc truy cập `http://localhost:8000/staff/`).
    - Xem giao diện kiểm soát trạng thái các ngăn tủ Locker (LOCKER-S-01, LOCKER-M-01,...).
-   - Bấm nút mô phỏng **"Người Bán Gửi Đồ (Check-in)"** và **"Người Mua Nhận Đồ (Check-out)"** để thấy quy trình Trạm tiếp nhận và bàn giao hàng hóa khép kín.
+   - Thử bấm **"Người Bán Gửi Đồ (Check-in)"**: Hệ thống gán vào ô tủ trống và đổi trạng thái tủ sang màu đỏ `Đang chứa hàng` ngay lập tức.
+   - Thử bấm **"Người Mua Nhận Đồ (Check-out)"**: Hệ thống mở tủ và giải phóng ô tủ về màu xanh `Đang trống`.
+   - Có thể bật Camera WebRTC thật của thiết bị để quét mã QR thực tế.
+
+8. **Thao tác 8 - Chuyển Đổi Tài Khoản Sinh Viên (Auth Context Switcher):**
+   - Trên thanh Navbar, bấm vào thẻ thông tin sinh viên góc trên bên phải (ví dụ: `Nguyễn Văn An - 520 Điểm`).
+   - Chọn chuyển đổi sang bạn *Trần Thị Bích* (480 điểm) hoặc *Lê Hoàng Cường* (390 điểm).
+   - Giao diện lập tức đồng bộ lại điểm uy tín, số dư ví và quyền quản trị tương ứng.

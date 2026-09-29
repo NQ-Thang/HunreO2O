@@ -697,3 +697,183 @@ body {
     color: #FFFFFF;
     border-color: var(--primary-green);
 }
+
+/* Search Bar */
+.search-container {
+    position: relative;
+    max-width: 450px;
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 16px 10px 42px;
+    background: rgba(17, 24, 39, 0.85);
+    border: 1px solid var(--border-subtle);
+    border-radius: 24px;
+    color: #FFFFFF;
+    font-size: 13.5px;
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.search-input:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+    background: rgba(17, 24, 39, 1);
+}
+
+.search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    font-size: 14px;
+}
+
+/* Card Action Buttons (Sửa & Xóa) */
+.card-manage-btns {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.btn-card-action {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: var(--transition-fast);
+}
+
+.btn-card-action:hover {
+    color: #FFFFFF;
+}
+
+.btn-card-action.edit:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60A5FA;
+}
+
+.btn-card-action.delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #F87171;
+}
+
+/* Form Controls in Modal */
+.form-group {
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+.form-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 9px 12px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: #FFFFFF;
+    font-size: 13px;
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.form-control:focus {
+    border-color: var(--primary-green);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Toast Notifications */
+#toastContainer {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    color: #FFFFFF;
+    font-size: 13.5px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideInRight 0.3s ease forwards;
+    min-width: 280px;
+}
+
+.toast.success {
+    border-left: 4px solid var(--primary-green);
+}
+
+.toast.info {
+    border-left: 4px solid var(--primary-blue);
+}
+
+.toast.error {
+    border-left: 4px solid var(--danger-red);
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* User Switcher Pill */
+.user-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: var(--transition-fast);
+}
+
+.user-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}

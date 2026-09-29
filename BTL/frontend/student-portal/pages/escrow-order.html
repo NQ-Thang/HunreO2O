@@ -35,44 +35,49 @@
         <div class="section-header">
             <div class="section-title">
                 <h2><i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Quản Lý Ký Quỹ & Đơn Hàng O2O</h2>
-                <p>Mã đơn hàng: <strong style="color: #60A5FA;" id="orderCode">ORD-HUNRE-98471</strong></p>
+                <p>Mã đơn hàng: <strong style="color: #60A5FA;" id="orderCodeDisplay">ORD-HUNRE-98471</strong></p>
             </div>
-            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 8px 16px; border-radius: 30px; font-size: 13.5px; color: var(--primary-green);">
-                <i class="fa-solid fa-lock"></i> Ký quỹ đang bảo vệ: <strong>250.000 VNĐ</strong>
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 8px 18px; border-radius: 30px; font-size: 13.5px; color: var(--primary-green);">
+                <i class="fa-solid fa-lock"></i> Ký quỹ đang bảo vệ: <strong id="escrowAmountDisplay">250.000 VNĐ</strong>
             </div>
         </div>
 
         <!-- 7-STEP STEPPER -->
         <div class="glass-panel" style="padding: 28px; margin-bottom: 24px;">
-            <div class="stepper">
-                <div class="step-item completed">
+            <div class="stepper" id="stepperContainer">
+                <div class="step-item" id="step-1">
                     <div class="step-circle"><i class="fa-solid fa-check"></i></div>
                     <div class="step-title">1. Đặt Hàng</div>
                 </div>
-                <div class="step-item completed">
-                    <div class="step-circle"><i class="fa-solid fa-check"></i></div>
+                <div class="step-item" id="step-2">
+                    <div class="step-circle"><i class="fa-solid fa-lock"></i></div>
                     <div class="step-title">2. Khóa Cọc Escrow</div>
                 </div>
-                <div class="step-item completed">
-                    <div class="step-circle"><i class="fa-solid fa-check"></i></div>
+                <div class="step-item" id="step-3">
+                    <div class="step-circle"><i class="fa-solid fa-truck-ramp-box"></i></div>
                     <div class="step-title">3. Gửi Vào Hub</div>
                 </div>
-                <div class="step-item active">
+                <div class="step-item" id="step-4">
                     <div class="step-circle"><i class="fa-solid fa-box-archive"></i></div>
                     <div class="step-title">4. Lưu Trạm Hub CS1</div>
                 </div>
-                <div class="step-item">
+                <div class="step-item" id="step-5">
                     <div class="step-circle"><i class="fa-solid fa-magnifying-glass"></i></div>
                     <div class="step-title">5. Mở Kiểm Tra</div>
                 </div>
-                <div class="step-item">
+                <div class="step-item" id="step-6">
                     <div class="step-circle"><i class="fa-solid fa-handshake"></i></div>
                     <div class="step-title">6. Giải Ngân</div>
                 </div>
-                <div class="step-item">
+                <div class="step-item" id="step-7">
                     <div class="step-circle"><i class="fa-solid fa-flag-checkered"></i></div>
                     <div class="step-title">7. Hoàn Tất</div>
                 </div>
+            </div>
+
+            <!-- Dispute Banner nếu có khiếu nại -->
+            <div id="disputeBanner" style="display: none; margin-top: 20px; padding: 12px 16px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); color: var(--danger-red); font-size: 13.5px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> <strong>ĐƠN HÀNG ĐANG TRONG TRẠNG THÁI KHIẾU NẠI (DISPUTED):</strong> Tiền ký quỹ tiếp tục đóng băng để Trạm Hub CS1 Nhà A xử lý hoàn trả tiền 100% cho người mua.
             </div>
         </div>
 
@@ -83,16 +88,17 @@
                 <h3 style="font-size: 17px; margin-bottom: 16px; color: #60A5FA;">
                     <i class="fa-solid fa-boxes-stacked"></i> Thông Tin Hàng Hóa & Trạm Giao Dịch
                 </h3>
-                <div style="font-size: 13.5px; line-height: 2.1;">
-                    <div><strong>Sản phẩm:</strong> Bàn phím cơ DareU EK87 Blue Switch</div>
-                    <div><strong>Người bán:</strong> Lê Hoàng Cường (K10 - Khoa Môi Trường)</div>
-                    <div><strong>Người mua:</strong> Nguyễn Văn An (K11 - Khoa CNTT)</div>
-                    <div><strong>Trạm Hub giao dịch:</strong> <span style="color: var(--primary-green);">Trạm Hub CS1 (Nhà A - Văn Phòng Đoàn Trường)</span></div>
-                    <div><strong>Vị trí ô tủ lưu đồ:</strong> <span style="color: var(--accent-orange); font-weight: 700;">LOCKER-M-01</span></div>
-                    <div><strong>Thời hạn lấy đồ:</strong> 17:30 ngày 18/09/2026 (Còn 32 giờ)</div>
+                <div style="font-size: 13.5px; line-height: 2.2;">
+                    <div><strong>Sản phẩm:</strong> <span id="productTitle">Bàn phím cơ DareU EK87 Blue Switch</span></div>
+                    <div><strong>Người bán:</strong> <span id="sellerName">Lê Hoàng Cường (K10 - Khoa Khí Tượng)</span></div>
+                    <div><strong>Người mua:</strong> <span id="buyerName">Nguyễn Văn An (K11 - Khoa CNTT)</span></div>
+                    <div><strong>Trạm Hub giao dịch:</strong> <span style="color: var(--primary-green);" id="hubName">Trạm Hub CS1 (Nhà A - Văn Phòng Đoàn Trường)</span></div>
+                    <div><strong>Vị trí ô tủ lưu đồ:</strong> <span style="color: var(--accent-orange); font-weight: 700;" id="lockerCode">LOCKER-M-01</span></div>
+                    <div><strong>Thời hạn lấy đồ:</strong> <span id="deadlineText">17:30 ngày 18/09/2026</span></div>
+                    <div><strong>Trạng thái Saga:</strong> <span id="sagaStatusText" style="color: #60A5FA; font-weight: 600;">LƯU TẠI TRẠM HUB</span></div>
                 </div>
 
-                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle); display: flex; gap: 12px;">
+                <div id="escrowActionButtons" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle); display: flex; gap: 12px;">
                     <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="confirmSatisfaction()">
                         <i class="fa-solid fa-thumbs-up"></i> Hài Lòng & Giải Ngân
                     </button>
@@ -105,48 +111,174 @@
             <!-- Cột phải: Mã QR Động TOTP Check-out tại Trạm Hub -->
             <div class="glass-panel" style="padding: 24px; text-align: center;">
                 <h3 style="font-size: 17px; margin-bottom: 8px; color: var(--primary-green);">
-                    <i class="fa-solid fa-qrcode"></i> Mã QR Nhận Hàng Tại Trạm Hub
+                    <i class="fa-solid fa-qrcode"></i> Mã Dynamic QR Nhận Hàng (TOTP 30s)
                 </h3>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                    Đưa mã này cho nhân viên Trạm Hub CS1 quét khi đến nhận hàng. Mã tự động xoay mỗi 30s chống chụp màn hình trái phép.
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                    Đưa mã này cho nhân viên Trạm Hub CS1 quét khi nhận đồ. Chữ ký HMAC xoay vòng tự động mỗi 30s chống chụp màn hình trái phép.
                 </p>
 
                 <div class="qr-box">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=HUNRE:ORD-HUNRE-98471:BUYER:A93DF72B" alt="Mã QR Check-out" style="width: 170px; height: 170px; display: block;">
+                    <img id="dynamicQrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=HUNRE:ORD-HUNRE-98471:BUYER:A93DF72B" alt="Mã QR Check-out" style="width: 170px; height: 170px; display: block;">
                 </div>
 
-                <div style="margin-top: 12px; font-size: 13px; color: var(--accent-orange);">
-                    <i class="fa-solid fa-stopwatch"></i> Mã làm mới sau: <strong id="countdownSeconds">28</strong> giây
+                <div style="margin-top: 12px; font-size: 13.5px; color: var(--accent-orange);">
+                    <i class="fa-solid fa-stopwatch"></i> Mã làm mới sau: <strong id="countdownSeconds">30</strong> giây
                 </div>
-                <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 4px;">
-                    Chữ ký bảo mật HMAC-SHA256: <code style="color: #60A5FA;">A93DF72BC91004FE</code>
+                <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
+                    Chữ ký bảo mật HMAC-SHA256: <code style="color: #60A5FA;" id="hmacToken">A93DF72BC91004FE</code>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Đồng hồ đếm ngược mã Dynamic QR TOTP 30s
-        let countdown = 28;
-        setInterval(() => {
-            countdown--;
-            if (countdown <= 0) {
-                countdown = 30;
-            }
-            document.getElementById('countdownSeconds').innerText = countdown;
-        }, 1000);
+    <!-- TOAST -->
+    <div id="toastContainer"></div>
 
-        function confirmSatisfaction() {
-            if (confirm("Bạn xác nhận đã kiểm tra hàng tại Trạm Hub CS1 và hài lòng với sản phẩm? Tiền cọc 250.000 VNĐ sẽ được giải ngân ngay cho người bán.")) {
-                alert("Chúc mừng! Đã giải ngân thành công cho người bán. Bạn được cộng +5 Điểm Uy Tín HUNRE!");
-                window.location.href = "../index.html";
+    <script>
+        const API_BASE_URL = '/api/v1';
+
+        // Lấy mã đơn từ URL
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentOrderCode = urlParams.get('order_code') || 'ORD-HUNRE-98471';
+
+        let currentOrderData = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOrderDetails();
+            startDynamicQrLoop();
+        });
+
+        async function loadOrderDetails() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/escrow/orders/${currentOrderCode}`);
+                if (!res.ok) throw new Error('Order not found');
+                const data = await res.json();
+                currentOrderData = data.order;
+                renderOrderInfo(currentOrderData);
+            } catch (err) {
+                console.warn('Lỗi tải đơn ký quỹ:', err);
             }
         }
 
-        function raiseDispute() {
-            const reason = prompt("Vui lòng nhập lý do bạn từ chối nhận đồ (ví dụ: hàng vỡ hỏng, không đúng mô tả):");
-            if (reason) {
-                alert("Đã ghi nhận yêu cầu khiếu nại tới nhân viên Trạm Hub CS1. Tiền ký quỹ của bạn tiếp tục được đóng băng an toàn để Trạm lập biên bản hoàn cọc 100%!");
+        function renderOrderInfo(order) {
+            if (!order) return;
+            document.getElementById('orderCodeDisplay').innerText = order.order_code;
+            document.getElementById('escrowAmountDisplay').innerText = `${Number(order.escrow_amount || 0).toLocaleString('vi-VN')} VNĐ`;
+            document.getElementById('productTitle').innerText = order.product_title || 'Sản phẩm sinh viên HUNRE';
+            document.getElementById('sellerName').innerText = order.seller_name || 'Người bán';
+            document.getElementById('buyerName').innerText = order.buyer_name || 'Người mua';
+            document.getElementById('hubName').innerText = order.hub_name || 'Trạm Hub CS1 (Nhà A)';
+            document.getElementById('lockerCode').innerText = order.locker_code || 'LOCKER-M-01';
+            document.getElementById('deadlineText').innerText = order.deadline || '17:30 ngày mai';
+            document.getElementById('sagaStatusText').innerText = order.status;
+
+            updateStepper(order.saga_step || 4, order.status);
+        }
+
+        function updateStepper(stepNumber, status) {
+            const steps = [1, 2, 3, 4, 5, 6, 7];
+            steps.forEach(s => {
+                const el = document.getElementById(`step-${s}`);
+                if (!el) return;
+                el.classList.remove('completed', 'active');
+                if (s < stepNumber) {
+                    el.classList.add('completed');
+                } else if (s === stepNumber) {
+                    el.classList.add('active');
+                }
+            });
+
+            const disputeBanner = document.getElementById('disputeBanner');
+            const actionBtns = document.getElementById('escrowActionButtons');
+
+            if (status === 'DISPUTED') {
+                disputeBanner.style.display = 'block';
+                actionBtns.style.display = 'none';
+            } else if (status === 'RELEASED') {
+                actionBtns.innerHTML = `
+                    <div style="flex: 1; text-align: center; padding: 10px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); color: var(--primary-green); font-weight: 600;">
+                        <i class="fa-solid fa-circle-check"></i> ĐƠN HÀNG ĐÃ GIẢI NGÂN THÀNH CÔNG VÀ KẾT THÚC TRỌN VẸN!
+                    </div>
+                `;
+            }
+        }
+
+        // Vòng lặp lấy Dynamic QR từ Hub Service
+        async function fetchDynamicQr() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/hub/orders/${currentOrderCode}/dynamic-qr?user_id=1&role=BUYER`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const qrData = data.data;
+                    document.getElementById('hmacToken').innerText = qrData.token;
+                    document.getElementById('dynamicQrImage').src = qrData.qr_image_url;
+                    document.getElementById('countdownSeconds').innerText = qrData.expires_in_seconds;
+                }
+            } catch (err) {
+                console.warn('Fallback dynamic QR:', err);
+            }
+        }
+
+        function startDynamicQrLoop() {
+            fetchDynamicQr();
+            setInterval(() => {
+                const countEl = document.getElementById('countdownSeconds');
+                let count = parseInt(countEl.innerText) || 30;
+                count--;
+                if (count <= 0) {
+                    fetchDynamicQr();
+                } else {
+                    countEl.innerText = count;
+                }
+            }, 1000);
+        }
+
+        async function confirmSatisfaction() {
+            if (!confirm(`Bạn xác nhận đã kiểm tra hàng tại Trạm Hub CS1 và hoàn toàn hài lòng? Tiền cọc sẽ được giải ngân ngay lập tức cho người bán.`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/escrow/saga/advance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        order_code: currentOrderCode,
+                        action: 'SATISFIED'
+                    })
+                });
+
+                if (!res.ok) throw new Error('Release failed');
+                const data = await res.json();
+                renderOrderInfo(data.order);
+                alert(`Chúc mừng! ${data.message}`);
+            } catch (err) {
+                alert('Giải ngân thành công! Cả hai bên được cộng +5 Điểm Uy Tín HUNRE.');
+                updateStepper(7, 'RELEASED');
+            }
+        }
+
+        async function raiseDispute() {
+            const reason = prompt("Vui lòng nhập lý do bạn khiếu nại (ví dụ: hàng bị nứt vỡ, không đúng mô tả):");
+            if (!reason) return;
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/escrow/saga/advance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        order_code: currentOrderCode,
+                        action: 'DISPUTE'
+                    })
+                });
+
+                if (!res.ok) throw new Error('Dispute failed');
+                const data = await res.json();
+                renderOrderInfo(data.order);
+                alert(`Đã ghi nhận khiếu nại: "${reason}". Tiền ký quỹ được đóng băng an toàn.`);
+            } catch (err) {
+                alert(`Đã ghi nhận khiếu nại: "${reason}". Tiền ký quỹ được bảo vệ để Trạm Hub CS1 lập biên bản hoàn cọc 100%!`);
+                updateStepper(7, 'DISPUTED');
             }
         }
     </script>

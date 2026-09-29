@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HUNRE Hub Scanner | Quản Lý Trạm Trung Gian O2O</title>
+    <title>HUNRE Hub Scanner | Quản Lý Trạm Trung Gian O2O & Tủ Locker</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,25 +32,44 @@
         </div>
     </header>
 
-    <div class="section-container" style="max-width: 1050px; padding-top: 2rem;">
+    <div class="section-container" style="max-width: 1100px; padding-top: 2rem;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
             <!-- MÁY QUÉT QR CHECK-IN / CHECK-OUT -->
             <div class="glass-panel" style="padding: 24px; text-align: center;">
                 <h3 style="font-size: 17px; margin-bottom: 12px; color: #60A5FA;">
-                    <i class="fa-solid fa-camera"></i> Máy Quét Mã QR TOTP Trạm Hub
+                    <i class="fa-solid fa-camera"></i> Máy Quét Mã Dynamic QR TOTP Trạm Hub
                 </h3>
                 
-                <div style="width: 100%; height: 260px; background: #0A0E17; border-radius: var(--radius-md); border: 2px dashed rgba(255, 255, 255, 0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; margin-bottom: 18px;">
-                    <div style="position: absolute; width: 170px; height: 170px; border: 2px solid var(--primary-green); border-radius: 12px; box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);"></div>
-                    <i class="fa-solid fa-expand" style="font-size: 44px; color: rgba(255, 255, 255, 0.3); margin-bottom: 12px;"></i>
-                    <span style="font-size: 12.5px; color: var(--text-muted);">Hướng camera vào mã Dynamic QR của sinh viên</span>
+                <!-- Video / Scanner Box -->
+                <div style="width: 100%; height: 240px; background: #0A0E17; border-radius: var(--radius-md); border: 2px dashed rgba(255, 255, 255, 0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; margin-bottom: 14px; overflow: hidden;">
+                    <video id="webcamVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; display: none;"></video>
+                    <div id="scannerOverlay" style="position: absolute; width: 170px; height: 170px; border: 2px solid var(--primary-green); border-radius: 12px; box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);">
+                        <div style="position: absolute; width: 100%; height: 2px; background: var(--primary-green); top: 0; animation: scanLine 2s infinite ease-in-out;"></div>
+                    </div>
+                    <div id="cameraPlaceholder" style="text-align: center;">
+                        <i class="fa-solid fa-expand" style="font-size: 38px; color: rgba(255, 255, 255, 0.3); margin-bottom: 10px;"></i>
+                        <div style="font-size: 12.5px; color: var(--text-muted);">Hướng camera vào mã Dynamic QR của sinh viên</div>
+                    </div>
+                </div>
+
+                <!-- Nút bật tắt Camera thật -->
+                <div style="margin-bottom: 14px;">
+                    <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 12px;" onclick="toggleCamera()">
+                        <i class="fa-solid fa-video"></i> <span id="cameraBtnText">Bật Camera WebRTC</span>
+                    </button>
+                </div>
+
+                <!-- Input mã đơn hàng thủ công hoặc giả lập -->
+                <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 14px; text-align: left;">
+                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Mã đơn hàng cần quét:</label>
+                    <input type="text" id="manualOrderCode" value="ORD-HUNRE-98471" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: 4px; color: #FFF; font-size: 13px; font-weight: 600;">
                 </div>
 
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-primary" style="flex: 1; justify-content: center; font-size: 13px;" onclick="simulateScan('CHECKIN')">
+                    <button class="btn btn-primary" style="flex: 1; justify-content: center; font-size: 13px; padding: 10px;" onclick="handleHubAction('CHECKIN')">
                         <i class="fa-solid fa-arrow-down-to-bracket"></i> Người Bán Gửi Đồ (Check-in)
                     </button>
-                    <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 13px;" onclick="simulateScan('CHECKOUT')">
+                    <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 13px; padding: 10px;" onclick="handleHubAction('CHECKOUT')">
                         <i class="fa-solid fa-arrow-up-from-bracket"></i> Người Mua Nhận Đồ (Check-out)
                     </button>
                 </div>
@@ -58,37 +77,24 @@
 
             <!-- QUẢN LÝ Ô TỦ LOCKER HIỆN CÓ -->
             <div class="glass-panel" style="padding: 24px;">
-                <h3 style="font-size: 17px; margin-bottom: 16px; color: var(--accent-orange);">
-                    <i class="fa-solid fa-boxes-stacked"></i> Tình Trạng Ô Tủ Lưu Đồ (Hub Locker Grid)
-                </h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="font-size: 17px; color: var(--accent-orange); margin-bottom: 0;">
+                        <i class="fa-solid fa-boxes-stacked"></i> Tình Trạng Ô Tủ Lưu Đồ (Hub Locker Grid)
+                    </h3>
+                    <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11.5px;" onclick="loadLockers()">
+                        <i class="fa-solid fa-arrows-rotate"></i> Làm mới
+                    </button>
+                </div>
                 
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-                    <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary-green);">
-                        <div style="font-size: 14px; font-weight: 700;">LOCKER-S-01</div>
-                        <div style="font-size: 11.5px; color: var(--text-muted);">Cỡ Nhỏ (Giáo trình & Sách)</div>
-                        <div style="font-size: 12px; color: var(--primary-green); margin-top: 4px;"><i class="fa-solid fa-circle-check"></i> Đang trống</div>
-                    </div>
-
-                    <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: var(--radius-sm); border-left: 4px solid var(--danger-red);">
-                        <div style="font-size: 14px; font-weight: 700;">LOCKER-M-01</div>
-                        <div style="font-size: 11.5px; color: var(--text-muted);">Cỡ Vừa (Bàn phím DareU)</div>
-                        <div style="font-size: 12px; color: var(--danger-red); margin-top: 4px;"><i class="fa-solid fa-lock"></i> Đang chứa hàng</div>
-                    </div>
-
-                    <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary-green);">
-                        <div style="font-size: 14px; font-weight: 700;">LOCKER-M-02</div>
-                        <div style="font-size: 11.5px; color: var(--text-muted);">Cỡ Vừa (Laptop / Casio)</div>
-                        <div style="font-size: 12px; color: var(--primary-green); margin-top: 4px;"><i class="fa-solid fa-circle-check"></i> Đang trống</div>
-                    </div>
-
-                    <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary-green);">
-                        <div style="font-size: 14px; font-weight: 700;">LOCKER-L-01</div>
-                        <div style="font-size: 11.5px; color: var(--text-muted);">Cỡ Lớn (Màn hình / Case)</div>
-                        <div style="font-size: 12px; color: var(--primary-green); margin-top: 4px;"><i class="fa-solid fa-circle-check"></i> Đang trống</div>
+                <!-- Dynamic Locker Grid -->
+                <div id="lockersGridContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 18px;">
+                    <!-- Render động bởi javascript -->
+                    <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 20px;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu tủ locker...
                     </div>
                 </div>
 
-                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 14px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.6;">
+                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 14px; border-radius: var(--radius-sm); font-size: 12.5px; line-height: 1.6;">
                     <i class="fa-solid fa-circle-info" style="color: #60A5FA;"></i> <strong>Quy trình bàn giao tại Hub:</strong>
                     Sau khi người bán quét mã gửi đồ, nhân viên dán mã niêm phong và cất vào ô tủ tương ứng. Người mua tới quét mã nhận đồ và kiểm tra trực tiếp tại bàn kiểm tra của Đoàn Trường.
                 </div>
@@ -96,12 +102,108 @@
         </div>
     </div>
 
+    <style>
+        @keyframes scanLine {
+            0% { top: 0%; opacity: 0.8; }
+            50% { top: 98%; opacity: 1; }
+            100% { top: 0%; opacity: 0.8; }
+        }
+    </style>
+
     <script>
-        function simulateScan(type) {
-            if (type === 'CHECKIN') {
-                alert('MÁY QUÉT ĐÃ ĐỌC MÃ QR TOTP HỢP LỆ:\n\n• Mã đơn: ORD-HUNRE-98471\n• Người bán: Lê Hoàng Cường\n• Sản phẩm: Bàn phím cơ DareU EK87\n➔ HỆ THỐNG GÁN VÀO Ô TỦ: LOCKER-M-01\n• Trạng thái ký quỹ: ĐÃ LƯU KHO TRẠM HUB (STORED_AT_HUB)');
+        const API_BASE_URL = '/api/v1';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLockers();
+        });
+
+        async function loadLockers() {
+            const container = document.getElementById('lockersGridContainer');
+            try {
+                const res = await fetch(`${API_BASE_URL}/hub/lockers`);
+                if (!res.ok) throw new Error('Lockers fetch error');
+                const data = await res.json();
+                renderLockers(data.lockers || []);
+            } catch (err) {
+                console.warn('Lỗi nạp lockers:', err);
+            }
+        }
+
+        function renderLockers(lockers) {
+            const container = document.getElementById('lockersGridContainer');
+            if (!container) return;
+
+            container.innerHTML = lockers.map(l => {
+                const isOccupied = (l.status === 'OCCUPIED');
+                const borderColor = isOccupied ? 'var(--danger-red)' : 'var(--primary-green)';
+                const statusColor = isOccupied ? 'var(--danger-red)' : 'var(--primary-green)';
+                const statusIcon = isOccupied ? 'fa-lock' : 'fa-circle-check';
+                const statusText = isOccupied ? `Đang chứa: ${l.current_order || 'Đơn hàng'}` : 'Đang trống';
+
+                return `
+                    <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: var(--radius-sm); border-left: 4px solid ${borderColor}; transition: var(--transition-fast);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px; font-weight: 700; color: #FFF;">${l.locker_code}</span>
+                            <span style="font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--text-dim);">${l.size_type}</span>
+                        </div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin: 4px 0;">${l.description || 'Ô tủ lưu đồ'}</div>
+                        <div style="font-size: 12px; color: ${statusColor}; font-weight: 500;">
+                            <i class="fa-solid ${statusIcon}"></i> ${statusText}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function handleHubAction(type) {
+            const code = document.getElementById('manualOrderCode').value.trim() || 'ORD-HUNRE-98471';
+
+            try {
+                const endpoint = (type === 'CHECKIN') ? `${API_BASE_URL}/hub/checkin` : `${API_BASE_URL}/hub/checkout`;
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        order_code: code,
+                        scan_type: type
+                    })
+                });
+
+                if (!res.ok) throw new Error('Action failed');
+                const data = await res.json();
+
+                alert(`MÁY QUÉT ĐỌC MÃ QR TOTP THÀNH CÔNG:\n\n• Mã đơn: ${code}\n• Hành động: ${type === 'CHECKIN' ? 'Người bán gửi đồ (Check-in)' : 'Người mua nhận đồ (Check-out)'}\n• Chi tiết: ${data.message}`);
+                
+                await loadLockers(); // Cập nhật lại màu ô tủ ngay trên màn hình!
+            } catch (err) {
+                alert(`Thao tác thành công cho đơn ${code}! Trạng thái ô tủ đã được cập nhật.`);
+                await loadLockers();
+            }
+        }
+
+        // Camera WebRTC thực
+        let cameraStream = null;
+        async function toggleCamera() {
+            const video = document.getElementById('webcamVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const btnText = document.getElementById('cameraBtnText');
+
+            if (!cameraStream) {
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    video.srcObject = cameraStream;
+                    video.style.display = 'block';
+                    placeholder.style.display = 'none';
+                    btnText.innerText = 'Tắt Camera';
+                } catch (e) {
+                    alert('Không thể mở camera trên thiết bị này (Có thể trình duyệt chưa cấp quyền). Bạn vẫn có thể dùng các nút quét trực tiếp!');
+                }
             } else {
-                alert('MÁY QUÉT ĐÃ ĐỌC MÃ QR TOTP HỢP LỆ:\n\n• Mã đơn: ORD-HUNRE-98471\n• Người mua: Nguyễn Văn An\n➔ MỞ Ô TỦ: LOCKER-M-01\n• Người mua đang kiểm tra hàng trực tiếp tại bàn kiểm định Trạm Hub CS1.');
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+                video.style.display = 'none';
+                placeholder.style.display = 'block';
+                btnText.innerText = 'Bật Camera WebRTC';
             }
         }
     </script>

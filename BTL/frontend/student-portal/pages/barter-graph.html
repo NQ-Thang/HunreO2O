@@ -188,15 +188,80 @@
                 </tbody>
             </table>
 
-            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" onclick="openNewBarterForm()">
+                    <i class="fa-solid fa-plus"></i> Đăng Ký Nhu Cầu Đổi Đồ Của Bạn
+                </button>
                 <button class="btn btn-primary" onclick="alert('Đã gửi thông báo xác nhận ghép kèo và mã lịch hẹn gửi đồ tại Trạm Hub CS1 cho cả 3 bạn!')">
                     <i class="fa-solid fa-signature"></i> Đồng Ý Ghép Kèo & Đặt Lịch Trạm Hub
+                </button>
+            </div>
+        </div>
+
+        <!-- FORM ĐĂNG KÝ NHU CẦU ĐỔI ĐỒ MỚI -->
+        <div class="glass-panel" id="newBarterFormPanel" style="display: none; margin-top: 24px; padding: 24px;">
+            <h3 style="font-size: 17px; color: #60A5FA; margin-bottom: 8px;">
+                <i class="fa-solid fa-circle-plus"></i> Đăng Ký Nhu Cầu Đổi Đồ (Thêm Cạnh Vào Barter Graph)
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Nhập món đồ bạn đang có và món đồ bạn muốn nhận lại. Thuật toán AI Graph Solver sẽ tự động quét ghép chu trình tối ưu.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <label style="display: block; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px;">Họ tên sinh viên:</label>
+                    <input type="text" id="barterUserName" class="form-control" value="Nguyễn Văn An (K11 CNTT)" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #FFF;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px;">Món đồ bạn đang có (Đưa đi):</label>
+                    <input type="text" id="barterItemGive" class="form-control" placeholder="Ví dụ: Tai nghe Gaming Fuhlen" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #FFF;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <label style="display: block; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px;">Giá trị ước tính đồ của bạn (VNĐ):</label>
+                    <input type="number" id="barterPriceGive" class="form-control" placeholder="Ví dụ: 180000" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #FFF;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px;">Món đồ mong muốn nhận về:</label>
+                    <input type="text" id="barterItemReceive" class="form-control" placeholder="Ví dụ: Chuột không dây Logitech" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 6px; color: #FFF;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="submitNewBarterRequest()">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> Quét Tìm Chu Trình Mới
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('newBarterFormPanel').style.display='none'">
+                    Đóng
                 </button>
             </div>
         </div>
     </div>
 
     <script>
+        function openNewBarterForm() {
+            const panel = document.getElementById('newBarterFormPanel');
+            panel.style.display = (panel.style.display === 'none' ? 'block' : 'none');
+            panel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function submitNewBarterRequest() {
+            const name = document.getElementById('barterUserName').value.trim();
+            const give = document.getElementById('barterItemGive').value.trim();
+            const price = parseFloat(document.getElementById('barterPriceGive').value) || 150000;
+            const receive = document.getElementById('barterItemReceive').value.trim();
+
+            if (!give || !receive) {
+                alert('Vui lòng nhập đầy đủ món đồ đưa đi và món đồ muốn nhận!');
+                return;
+            }
+
+            alert(`AI Graph Solver: Đã nạp thành công nhu cầu của ${name}!\n\n• Đưa: ${give} (${Number(price).toLocaleString('vi-VN')}đ)\n• Nhận: ${receive}\n➔ Đã cập nhật đồ thị và thuật toán đang tìm kiếm chu trình khép kín bảo toàn số dư!`);
+            document.getElementById('newBarterFormPanel').style.display = 'none';
+        }
+
         async function solveCyclesFromAI() {
             try {
                 const res = await fetch('/api/v1/ai/barter/solve-cycles', {
