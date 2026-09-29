@@ -2,15 +2,6 @@
 *.log
 out.log
 
-# Java & Maven
-**/target/
-*.class
-
-# Package Files
-*.jar
-*.war
-*.ear
-
 # Python & AI Engine
 __pycache__/
 *.py[cod]
@@ -20,6 +11,15 @@ __pycache__/
 venv/
 env/
 .pytest_cache/
+
+# PHP / Laravel
+vendor/
+.env
+storage/logs/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+bootstrap/cache/
 
 # Node & Frontend
 node_modules/
