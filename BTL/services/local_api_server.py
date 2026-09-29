@@ -207,12 +207,21 @@ class RegisterDTO(BaseModel):
 
 @app.post("/api/v1/auth/register")
 def register(dto: RegisterDTO):
+    if not dto.student_code.strip() or not dto.full_name.strip():
+        raise HTTPException(status_code=422, detail="Mã sinh viên và họ tên không được để trống!")
+    if not dto.email.lower().endswith("@hunre.edu.vn"):
+        raise HTTPException(status_code=422, detail="KYC Failed: Bắt buộc sử dụng email sinh viên trường (@hunre.edu.vn)!")
+
     db = load_db()
+    # Kiểm tra trùng email
+    if any(u["email"].lower() == dto.email.lower() for u in db["users"]):
+        raise HTTPException(status_code=409, detail="Email sinh viên này đã được đăng ký trong hệ thống!")
+
     new_user = {
         "id": len(db["users"]) + 1,
-        "student_code": dto.student_code,
-        "full_name": dto.full_name,
-        "email": dto.email.lower(),
+        "student_code": dto.student_code.strip(),
+        "full_name": dto.full_name.strip(),
+        "email": dto.email.lower().strip(),
         "trust_score": 500,
         "campus": dto.campus,
         "wallet_balance": 200000.0,
@@ -264,6 +273,13 @@ class ProductCreateDTO(BaseModel):
 
 @app.post("/api/v1/products")
 def create_product(dto: ProductCreateDTO):
+    if not dto.title or not dto.title.strip():
+        raise HTTPException(status_code=400, detail="Tiêu đề sản phẩm không được để trống!")
+    if dto.current_price <= 0:
+        raise HTTPException(status_code=400, detail="Giá bán sản phẩm phải lớn hơn 0 VNĐ!")
+    if dto.floor_price is not None and dto.floor_price > dto.current_price:
+        raise HTTPException(status_code=400, detail="Giá sàn không được lớn hơn giá bán hiện tại!")
+
     db = load_db()
     seller = next((u for u in db["users"] if u["id"] == dto.seller_id), db["users"][0])
     floor_price = dto.floor_price if dto.floor_price is not None else (dto.current_price * 0.8)
@@ -284,9 +300,9 @@ def create_product(dto: ProductCreateDTO):
         "seller_name": seller["full_name"],
         "category_id": dto.category_id,
         "category_name": category_name,
-        "title": dto.title,
+        "title": dto.title.strip(),
         "description": dto.description or "Sản phẩm chính chủ sinh viên HUNRE.",
-        "original_price": dto.original_price,
+        "original_price": dto.original_price or dto.current_price,
         "current_price": dto.current_price,
         "floor_price": floor_price,
         "condition_grade": dto.condition_grade or "GRADE_A",
@@ -317,8 +333,22 @@ def update_product(product_id: int, dto: ProductUpdateDTO):
     product = next((p for p in db["products"] if p["id"] == product_id), None)
     if not product:
         raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm.")
-    
-    if dto.title is not None: product["title"] = dto.title
+
+    if dto.title is not None:
+        if not dto.title.strip():
+            raise HTTPException(status_code=400, detail="Tiêu đề cập nhật không được để trống!")
+        product["title"] = dto.title.strip()
+
+    if dto.current_price is not None:
+        if dto.current_price <= 0:
+            raise HTTPException(status_code=400, detail="Giá bán cập nhật phải lớn hơn 0 VNĐ!")
+        product["current_price"] = dto.current_price
+
+    target_current = dto.current_price if dto.current_price is not None else product["current_price"]
+    if dto.floor_price is not None:
+        if dto.floor_price > target_current:
+            raise HTTPException(status_code=400, detail="Giá sàn không được lớn hơn giá bán!")
+        product["floor_price"] = dto.floor_price
     if dto.description is not None: product["description"] = dto.description
     if dto.category_id is not None: product["category_id"] = dto.category_id
     if dto.current_price is not None: product["current_price"] = dto.current_price
@@ -406,10 +436,13 @@ class SagaAdvanceDTO(BaseModel):
 
 @app.post("/api/v1/escrow/saga/advance")
 def advance_saga(dto: SagaAdvanceDTO):
+    if dto.action not in ["CHECKIN", "CHECKOUT", "SATISFIED", "DISPUTE"]:
+        raise HTTPException(status_code=400, detail=f"Hành động Saga '{dto.action}' không hợp lệ! Chỉ chấp nhận: CHECKIN, CHECKOUT, SATISFIED, DISPUTE.")
+
     db = load_db()
     order = db["escrow_orders"].get(dto.order_code)
     if not order:
-        raise HTTPException(status_code=404, detail="Không tìm thấy đơn hàng.")
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy đơn hàng ký quỹ '{dto.order_code}'.")
 
     if dto.action == "CHECKIN":
         order["saga_step"] = 4
@@ -431,8 +464,6 @@ def advance_saga(dto: SagaAdvanceDTO):
         order["saga_step"] = 7
         order["status"] = "DISPUTED"
         msg = "Đã tiếp nhận khiếu nại! Tiền ký quỹ bị đóng băng để Trạm Hub hoàn cọc 100%."
-    else:
-        raise HTTPException(status_code=400, detail="Hành động không hợp lệ.")
 
     save_db(db)
     return {"success": True, "message": msg, "order": order}
@@ -464,7 +495,7 @@ def hub_checkin(dto: HubScanDTO):
     # Tìm locker trống
     empty_locker = next((l for l in db["lockers"] if l["status"] == "EMPTY"), None)
     if not empty_locker:
-        empty_locker = db["lockers"][0]
+        raise HTTPException(status_code=409, detail="Toàn bộ ô tủ Locker tại Trạm Hub CS1 đang bận! Vui lòng chờ giải phóng ô tủ.")
     
     empty_locker["status"] = "OCCUPIED"
     empty_locker["current_order"] = dto.order_code
@@ -487,7 +518,7 @@ def hub_checkout(dto: HubScanDTO):
     # Tìm locker của order này
     locker = next((l for l in db["lockers"] if l.get("current_order") == dto.order_code), None)
     if not locker:
-        locker = db["lockers"][1] # Fallback LOCKER-M-01
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy ô tủ Locker đang chứa đơn hàng '{dto.order_code}'!")
     
     locker["status"] = "EMPTY"
     locker["current_order"] = None
@@ -499,7 +530,7 @@ def hub_checkout(dto: HubScanDTO):
     save_db(db)
     return {
         "success": True,
-        "message": f"Xác thực mã QR thành công! Đã mở khóa ô tủ {locker['locker_code']}. Người mua đang nhận và kiểm tra đồ.",
+        "message": f"Xác thực mã QR thành công! Đã mở khóa ô tủ {locker['locker_code']}. Người mua đang nhận hàng kiểm tra.",
         "locker": locker
     }
 
