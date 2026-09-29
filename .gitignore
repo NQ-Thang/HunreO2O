@@ -15,6 +15,7 @@ env/
 # PHP / Laravel
 vendor/
 .env
+**/.env
 storage/logs/
 storage/framework/cache/
 storage/framework/sessions/

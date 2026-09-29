@@ -1,6 +1,15 @@
 FROM alpine:latest
 
-RUN apk add --no-cache php php-cli php-json php-mbstring php-curl
+RUN apk add --no-cache \
+    php \
+    php-cli \
+    php-json \
+    php-mbstring \
+    php-curl \
+    php-pdo \
+    php-pdo_mysql \
+    php-openssl \
+    php-session
 
 WORKDIR /var/www
 
