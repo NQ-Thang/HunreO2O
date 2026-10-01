@@ -34,8 +34,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/up")
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "HUNRE O2O E-Commerce", "version": "2.5.0", "timestamp": datetime.now().isoformat()}
+
 # Đường dẫn file CSDL JSON
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Tích hợp AI Engine Router trực tiếp
+try:
+    import sys
+    ai_dir = os.path.join(BASE_DIR, "ai-engine")
+    if ai_dir not in sys.path:
+        sys.path.insert(0, ai_dir)
+    from app.main import app as ai_engine_app
+    app.include_router(ai_engine_app.router)
+except Exception as e:
+    pass
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DB_FILE = os.path.join(DATA_DIR, "hunre_db.json")
 
