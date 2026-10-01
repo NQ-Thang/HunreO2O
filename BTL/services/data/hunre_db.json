@@ -5,7 +5,7 @@
       "student_code": "20211001",
       "full_name": "Nguyễn Văn An",
       "email": "an.nv@hunre.edu.vn",
-      "trust_score": 520,
+      "trust_score": 530,
       "campus": "CS1_HA_NOI",
       "wallet_balance": 500000.0,
       "role": "STUDENT",
@@ -16,7 +16,7 @@
       "student_code": "20211002",
       "full_name": "Trần Thị Bích",
       "email": "bich.tt@hunre.edu.vn",
-      "trust_score": 480,
+      "trust_score": 490,
       "campus": "CS1_HA_NOI",
       "wallet_balance": 250000.0,
       "role": "STUDENT",
@@ -43,9 +43,40 @@
       "wallet_balance": 0.0,
       "role": "HUB_STAFF",
       "faculty": "Đoàn Thanh Niên"
+    },
+    {
+      "id": 5,
+      "student_code": "20219999",
+      "full_name": "Test Student",
+      "email": "test@hunre.edu.vn",
+      "trust_score": 500,
+      "campus": "CS1_HA_NOI",
+      "wallet_balance": 200000.0,
+      "role": "STUDENT",
+      "faculty": "Công nghệ Thông tin"
     }
   ],
   "products": [
+    {
+      "id": 4,
+      "seller_id": 1,
+      "seller_name": "Nguyễn Văn An",
+      "category_id": "BOOKS",
+      "category_name": "Giáo Trình & Tài Liệu",
+      "title": "Giao trinh Toan Cao Cap A1 (Chuan HUNRE)",
+      "description": "Sản phẩm chính chủ sinh viên HUNRE.",
+      "original_price": 70000.0,
+      "current_price": 60000.0,
+      "floor_price": 50000.0,
+      "condition_grade": "GRADE_A",
+      "ai_defect_score": 0.05,
+      "ai_inspection_summary": "Đã được AI thẩm định",
+      "is_barter_eligible": 1,
+      "desired_exchange_items": "Casio 580",
+      "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop",
+      "status": "ACTIVE",
+      "created_at": "2026-10-01 20:25:50"
+    },
     {
       "id": 1,
       "seller_id": 1,
@@ -124,7 +155,7 @@
       "size_type": "MEDIUM",
       "description": "Cỡ Vừa (Bàn phím DareU)",
       "status": "OCCUPIED",
-      "current_order": "ORD-HUNRE-98471"
+      "current_order": "ORD-OCCUPIED"
     },
     {
       "id": 3,
@@ -132,8 +163,8 @@
       "locker_code": "LOCKER-M-02",
       "size_type": "MEDIUM",
       "description": "Cỡ Vừa (Laptop / Casio)",
-      "status": "EMPTY",
-      "current_order": null
+      "status": "OCCUPIED",
+      "current_order": "ORD-OCCUPIED"
     },
     {
       "id": 4,
@@ -141,8 +172,8 @@
       "locker_code": "LOCKER-L-01",
       "size_type": "LARGE",
       "description": "Cỡ Lớn (Màn hình / Case)",
-      "status": "EMPTY",
-      "current_order": null
+      "status": "OCCUPIED",
+      "current_order": "ORD-OCCUPIED"
     }
   ],
   "escrow_orders": {
@@ -162,6 +193,57 @@
       "status": "STORED_AT_HUB",
       "deadline": "17:30 ngày 18/09/2026",
       "created_at": "2026-09-16 11:00:00"
+    },
+    "ORD-HUNRE-61150": {
+      "order_code": "ORD-HUNRE-61150",
+      "buyer_id": 2,
+      "buyer_name": "Trần Thị Bích",
+      "seller_id": 1,
+      "seller_name": "Nguyễn Văn An",
+      "product_id": 1,
+      "product_title": "Giáo trình Cơ Sở Dữ Liệu & SQL (HUNRE)",
+      "hub_id": 1,
+      "hub_name": "Trạm Hub CS1 (Nhà A - Văn Phòng Đoàn Trường)",
+      "locker_code": "LOCKER-M-02",
+      "escrow_amount": 70000.0,
+      "saga_step": 7,
+      "status": "RELEASED",
+      "deadline": "17:30 ngày mai",
+      "created_at": "2026-10-01 20:25:50"
+    },
+    "ORD-HUNRE-61151": {
+      "order_code": "ORD-HUNRE-61151",
+      "buyer_id": 3,
+      "buyer_name": "Lê Hoàng Cường",
+      "seller_id": 2,
+      "seller_name": "Trần Thị Bích",
+      "product_id": 2,
+      "product_title": "Máy tính Casio FX 580VN X (Like New)",
+      "hub_id": 1,
+      "hub_name": "Trạm Hub CS1 (Nhà A - Văn Phòng Đoàn Trường)",
+      "locker_code": "LOCKER-M-02",
+      "escrow_amount": 320000.0,
+      "saga_step": 7,
+      "status": "DISPUTED",
+      "deadline": "17:30 ngày mai",
+      "created_at": "2026-10-01 20:25:51"
+    },
+    "ORD-HUNRE-61254": {
+      "order_code": "ORD-HUNRE-61254",
+      "buyer_id": 2,
+      "buyer_name": "Trần Thị Bích",
+      "seller_id": 1,
+      "seller_name": "Nguyễn Văn An",
+      "product_id": 1,
+      "product_title": "Giáo trình Cơ Sở Dữ Liệu & SQL (HUNRE)",
+      "hub_id": 1,
+      "hub_name": "Trạm Hub CS1 (Nhà A - Văn Phòng Đoàn Trường)",
+      "locker_code": "LOCKER-S-01",
+      "escrow_amount": 70000.0,
+      "saga_step": 5,
+      "status": "BUYER_CHECKOUT",
+      "deadline": "17:30 ngày mai",
+      "created_at": "2026-10-01 20:27:34"
     }
   }
 }

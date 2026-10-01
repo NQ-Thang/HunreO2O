@@ -1,8 +1,6 @@
 # AGENTS.md - AI Coding Assistant Rules & Guardrails
 
-> This repository houses two microservices projects:
-> 1. `crs-microservices` (Root): Java 17 + Spring Boot Microservices + React TypeScript.
-> 2. `BTL`: HUNRE O2O E-Commerce & AI Platform (PHP Laravel + Python FastAPI + Docker Compose + MySQL 3307 + Redis 6379).
+> Repository: HUNRE O2O E-Commerce & AI Platform (PHP Laravel + Python FastAPI + Docker Compose + MySQL 3307 + Redis 6379).
 
 ---
 
@@ -25,8 +23,8 @@ Every AI Assistant (Cursor, GitHub Copilot, Claude, ChatGPT, Gemini, etc.) inter
 - Inter-service communication relies on exact field mapping (e.g. `product_id`, `current_price`, `trust_score`).
 - All changes must be **additive only** (new optional fields).
 - When an endpoint URI is modified or added, update:
-  - Gateway routing rules (`BTL/gateway/nginx.conf` or Spring Cloud Gateway).
-  - Frontend API consumers (`BTL/frontend/student-portal/js/app.js` or `crs-frontend/src/api/`).
+  - Gateway routing rules (`BTL/gateway/nginx.conf`).
+  - Frontend API consumers (`BTL/frontend/student-portal/` or `BTL/frontend/hub-staff-portal/`).
 
 ### 3. Port & Docker Infrastructure Protection
 - **DO NOT** change port mappings in `BTL/docker-compose.yml`:
@@ -38,8 +36,6 @@ Every AI Assistant (Cursor, GitHub Copilot, Claude, ChatGPT, Gemini, etc.) inter
   - `8005`: AI Intelligence Engine
   - `3307`: MySQL (BTL)
   - `6379`: Redis
-  - `8080 - 8083`: Java Spring Boot CRS Services (Gateway, Auth, Course, Registration)
-  - `3306`: MySQL (CRS)
 - To restart only a modified service: `docker compose restart <service-name>`.
 
 ### 4. Zero-Downtime Safe Database Migrations

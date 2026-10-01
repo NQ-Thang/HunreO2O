@@ -1,11 +1,11 @@
-# Cursor AI Rules for CRS & BTL Microservices Project
+# Cursor AI Rules for HUNRE BTL Microservices Project
 
 You are an expert software engineer assisting on this multi-service repository.
 Whenever generating code, refactoring, or giving commands, you MUST strictly adhere to these rules:
 
 1. BRANCHING: Never edit or push directly to `master`. Always advise working on `feature/<name>`.
 2. API CONTRACTS: Do not rename or delete existing fields in JSON request/response DTOs or endpoints across microservices. Keep backwards compatibility 100%. Only add new optional fields.
-3. PORTS & INFRA: Do not change port assignments in `docker-compose.yml` (8000-8005, 3307, 6379) or `application.properties` (8080-8083, 3306).
+3. PORTS & INFRA: Do not change port assignments in `docker-compose.yml` (8000-8005, 3307, 6379).
 4. DATABASE: Never write destructive migrations (`DROP TABLE`, `TRUNCATE`). All schema modifications must be additive `ALTER TABLE ... ADD COLUMN ...`.
 5. GIT HYGIENE: Never stage or commit `target/`, `node_modules/`, `vendor/`, `__pycache__/`, `*.log`, or `.env`.
 6. SERVICE ISOLATION: Keep changes localized to the specific service being worked on.

@@ -7,6 +7,7 @@ Lưu trữ dữ liệu bền vững (JSON File Persistence) tại data/hunre_db.
 """
 
 from fastapi import FastAPI, HTTPException, Request, Response, Query
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -600,6 +601,9 @@ FRONTEND_STUDENT_DIR = os.path.join(BASE_DIR, "..", "frontend", "student-portal"
 FRONTEND_STAFF_DIR = os.path.join(BASE_DIR, "..", "frontend", "hub-staff-portal")
 
 if os.path.exists(FRONTEND_STAFF_DIR):
+    @app.get("/staff")
+    def redirect_staff():
+        return RedirectResponse(url="/staff/")
     app.mount("/staff", StaticFiles(directory=FRONTEND_STAFF_DIR, html=True), name="hub-staff")
 
 if os.path.exists(FRONTEND_STUDENT_DIR):
