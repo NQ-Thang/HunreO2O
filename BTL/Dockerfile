@@ -9,7 +9,7 @@ WORKDIR /var/www
 
 FROM php-base AS build
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
-COPY composer.json composer.lock ./
+COPY composer.json composer.lock* ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-scripts --no-autoloader
 COPY . .
 RUN mkdir -p bootstrap/cache storage/framework/cache/data \
