@@ -7,7 +7,7 @@ Lưu trữ dữ liệu bền vững (JSON File Persistence) tại data/hunre_db.
 """
 
 from fastapi import FastAPI, HTTPException, Request, Response, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -42,14 +42,16 @@ def health_check():
 # Đường dẫn file CSDL JSON
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Tích hợp AI Engine Router trực tiếp
+# Tích hợp AI Engine Router trực tiếp (chỉ lấy các endpoint /api/v1/ai)
 try:
     import sys
     ai_dir = os.path.join(BASE_DIR, "ai-engine")
     if ai_dir not in sys.path:
         sys.path.insert(0, ai_dir)
     from app.main import app as ai_engine_app
-    app.include_router(ai_engine_app.router)
+    for route in ai_engine_app.routes:
+        if hasattr(route, 'path') and route.path.startswith('/api/v1/ai'):
+            app.routes.append(route)
 except Exception as e:
     pass
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -618,11 +620,21 @@ FRONTEND_STAFF_DIR = os.path.join(BASE_DIR, "..", "frontend", "hub-staff-portal"
 
 if os.path.exists(FRONTEND_STAFF_DIR):
     @app.get("/staff")
-    def redirect_staff():
-        return RedirectResponse(url="/staff/")
+    @app.get("/staff/")
+    def serve_staff_index():
+        index_path = os.path.join(FRONTEND_STAFF_DIR, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"error": "Staff portal index.html not found"}
     app.mount("/staff", StaticFiles(directory=FRONTEND_STAFF_DIR, html=True), name="hub-staff")
 
 if os.path.exists(FRONTEND_STUDENT_DIR):
+    @app.get("/")
+    def serve_student_index():
+        index_path = os.path.join(FRONTEND_STUDENT_DIR, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"error": "Student portal index.html not found"}
     app.mount("/", StaticFiles(directory=FRONTEND_STUDENT_DIR, html=True), name="student-portal")
 
 if __name__ == "__main__":
