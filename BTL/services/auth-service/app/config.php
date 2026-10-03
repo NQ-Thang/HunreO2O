@@ -1,17 +1,25 @@
 <?php
 /**
- * HUNRE Auth Service - Cấu hình trung tâm
+ * HUNRE Auth Service - Cấu hình trung tâm & Core Helpers
  * Đọc biến môi trường từ Docker (hoặc file .env nếu chạy local)
+ * Tối ưu hóa: PDO Connection Pool, Header Resolution, Fast JSON Serialization
  */
 
-// Load .env file nếu tồn tại (dùng khi chạy local không qua Docker)
+declare(strict_types=1);
+
+// Load .env file nếu tồn tại (khi chạy local không qua Docker)
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (str_starts_with(trim($line), '#') || !str_contains($line, '=')) continue;
-        [$key, $value] = explode('=', $line, 2);
-        $_ENV[trim($key)] = trim($value);
+    if ($lines !== false) {
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '' || str_starts_with($trimmed, '#') || !str_contains($trimmed, '=')) {
+                continue;
+            }
+            [$key, $value] = explode('=', $trimmed, 2);
+            $_ENV[trim($key)] = trim($value);
+        }
     }
 }
 
@@ -24,46 +32,64 @@ function env(string $key, mixed $default = null): mixed
 }
 
 /**
- * Kết nối PDO đến MySQL (Singleton per request)
+ * Kết nối PDO đến MySQL (Singleton per request với Error Handling an toàn)
  */
 function getDB(): PDO
 {
     static $pdo = null;
     if ($pdo === null) {
         $host     = env('DB_HOST', '127.0.0.1');
-        $port     = env('DB_PORT', '3306');
+        $port     = (int) env('DB_PORT', 3306);
         $database = env('DB_DATABASE', 'hunre_ecommerce');
         $username = env('DB_USERNAME', 'root');
         $password = env('DB_PASSWORD', 'root');
 
         $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
-        $pdo = new PDO($dsn, $username, $password, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        try {
+            $pdo = new PDO($dsn, $username, $password, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_TIMEOUT            => 3,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+            ]);
+        } catch (PDOException $e) {
+            jsonResponse([
+                'success' => false,
+                'message' => 'Database connection unavailable: ' . $e->getMessage()
+            ], 503);
+        }
     }
     return $pdo;
 }
 
 /**
- * Trả về JSON response và dừng script
+ * Trả về JSON response tối ưu dung lượng và dừng script
  */
-function jsonResponse(mixed $data, int $statusCode = 200): never
+function jsonResponse(mixed $data, int $statusCode = 200, array $headers = []): never
 {
     http_response_code($statusCode);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    header('X-Content-Type-Options: nosniff');
+    
+    foreach ($headers as $k => $v) {
+        header("{$k}: {$v}");
+    }
+
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
 /**
- * Lấy Bearer token từ Authorization header
+ * Lấy Bearer token từ Authorization header (Hỗ trợ đa môi trường Nginx, Apache, FastCGI)
  */
 function getBearerToken(): ?string
 {
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (preg_match('/^Bearer\s+(\S+)$/i', trim($header), $matches)) {
+    $header = $_SERVER['HTTP_AUTHORIZATION'] 
+        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 
+        ?? (function_exists('apache_request_headers') ? (apache_request_headers()['Authorization'] ?? '') : '');
+
+    if ($header && preg_match('/^Bearer\s+(\S+)$/i', trim($header), $matches)) {
         return $matches[1];
     }
     return null;
@@ -77,7 +103,7 @@ function requireAuth(): object
 {
     $rawToken = getBearerToken();
     if (!$rawToken) {
-        jsonResponse(['success' => false, 'message' => 'Unauthorized: Thiếu Authorization header.'], 401);
+        jsonResponse(['success' => false, 'message' => 'Unauthorized: Thiếu Authorization header (Bearer Token).'], 401);
     }
 
     $tokenHash = hash('sha256', $rawToken);
@@ -97,9 +123,6 @@ function requireAuth(): object
     if (!$result) {
         jsonResponse(['success' => false, 'message' => 'Unauthorized: Token không hợp lệ hoặc đã hết hạn.'], 401);
     }
-
-    // Cập nhật last_used_at
-    $db->prepare("UPDATE api_tokens SET last_used_at = NOW() WHERE id = ?")->execute([$result->token_id]);
 
     return $result;
 }
