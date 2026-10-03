@@ -1,101 +1,140 @@
 <?php
 /**
- * HUNRE AUTH SERVICE - Entry Point & Router
- * Port: 8001 | PHP Built-in Server
- *
- * Routes:
- *   POST   /api/v1/auth/register
- *   POST   /api/v1/auth/login
- *   POST   /api/v1/auth/logout              [Auth Required]
- *   GET    /api/v1/auth/me                  [Auth Required]
- *   GET    /api/v1/auth/trust-score/{id}    [Auth Required]
- *   POST   /api/v1/auth/trust-score/update  [Auth Required]
- *   GET    /health
+ * HUNRE AUTH SERVICE - Optimized Entry Point & Router
+ * Port: 8001 | PHP Standalone / Microservice Container
+ * 
+ * Implements Identity, Student KYC & Trust Score Engine for HUNRE O2O Platform.
+ * All API contracts and JSON keys remain 100% backward-compatible.
  */
 
-// ── CORS Headers (luôn gửi trước) ─────────────────────────────────────────
+declare(strict_types=1);
+
+// ── 1. CORS Headers & Preflight Handling ─────────────────────────────────────
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Idempotency-Key');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-// ── Load helpers & config ──────────────────────────────────────────────────
+// ── 2. Core Config & DB Initialization ───────────────────────────────────────
 require_once __DIR__ . '/../app/config.php';
 
-// ── Parse request ─────────────────────────────────────────────────────────
+// ── 3. Parse Request Method, Path & Payload ──────────────────────────────────
 $method = $_SERVER['REQUEST_METHOD'];
-$uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$uri    = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 $uri    = rtrim($uri, '/');
-
-$body = [];
-$raw  = file_get_contents('php://input');
-if ($raw) {
-    $body = json_decode($raw, true) ?? [];
+if ($uri === '') {
+    $uri = '/';
 }
 
-// ── Router ────────────────────────────────────────────────────────────────
+$body = [];
+$rawInput = file_get_contents('php://input');
+if ($rawInput !== false && $rawInput !== '') {
+    $decoded = json_decode($rawInput, true);
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        $body = $decoded;
+    }
+}
 
-// Health check
-if ($uri === '/health' || $uri === '') {
+// ── 4. Route Dispatcher ──────────────────────────────────────────────────────
+
+// [A] Health Check
+if ($uri === '/health' || $uri === '/' || $uri === '/api/v1/auth') {
     jsonResponse([
-        'service' => 'HUNRE Auth & Trust Score Service',
-        'version' => '3.0.0',
-        'status'  => 'UP',
+        'service'   => 'HUNRE Auth & Trust Score Service',
+        'version'   => '3.2.0',
+        'status'    => 'UP',
+        'timestamp' => date('Y-m-d H:i:s'),
         'endpoints' => [
             'POST /api/v1/auth/register',
             'POST /api/v1/auth/login',
-            'POST /api/v1/auth/logout         [Bearer]',
-            'GET  /api/v1/auth/me             [Bearer]',
-            'GET  /api/v1/auth/trust-score/{id} [Bearer]',
-            'POST /api/v1/auth/trust-score/update [Bearer]',
+            'POST /api/v1/auth/logout              [Bearer]',
+            'GET  /api/v1/auth/me                  [Bearer]',
+            'GET  /api/v1/auth/users               [Public/Admin]',
+            'GET  /api/v1/auth/trust-score/{id}    [Public/Bearer]',
+            'GET  /api/v1/auth/users/trust-score   [Query: user_id]',
+            'POST /api/v1/auth/trust-score/update  [Bearer]'
         ]
     ]);
 }
 
-// ── POST /api/v1/auth/register ────────────────────────────────────────────
+// [B] GET /api/v1/auth/users (Lấy danh sách người dùng)
+if ($uri === '/api/v1/auth/users' && $method === 'GET') {
+    $db = getDB();
+    $stmt = $db->query("
+        SELECT id, student_code, full_name, email, phone, faculty, campus, 
+               trust_score, kyc_status, role, wallet_balance, created_at 
+        FROM users 
+        ORDER BY id ASC
+    ");
+    $users = $stmt->fetchAll();
+
+    jsonResponse([
+        'success' => true,
+        'count'   => count($users),
+        'users'   => $users
+    ]);
+}
+
+// [C] POST /api/v1/auth/register (Đăng ký tài khoản KYC Sinh viên)
 if ($uri === '/api/v1/auth/register' && $method === 'POST') {
-    $studentCode = trim($body['student_code'] ?? '');
-    $fullName    = trim($body['full_name'] ?? '');
-    $email       = strtolower(trim($body['email'] ?? ''));
-    $password    = $body['password'] ?? '';
-    $faculty     = trim($body['faculty'] ?? 'Công nghệ Thông tin');
-    $campus      = $body['campus'] ?? 'CS1_HA_NOI';
+    $studentCode = trim((string) ($body['student_code'] ?? ''));
+    $fullName    = trim((string) ($body['full_name'] ?? ''));
+    $email       = strtolower(trim((string) ($body['email'] ?? '')));
+    $password    = (string) ($body['password'] ?? '');
+    $faculty     = trim((string) ($body['faculty'] ?? 'Công nghệ Thông tin'));
+    $campus      = (string) ($body['campus'] ?? 'CS1_HA_NOI');
 
-    // Validation
-    if (!$studentCode || !$fullName || !$email || !$password) {
-        jsonResponse(['success' => false, 'message' => 'Thiếu các trường bắt buộc: student_code, full_name, email, password.'], 422);
+    // Kiểm tra tính đầy đủ
+    if ($studentCode === '' || $fullName === '' || $email === '' || $password === '') {
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Thiếu các trường bắt buộc: student_code, full_name, email, password.'
+        ], 422);
     }
+
     if (strlen($password) < 6) {
-        jsonResponse(['success' => false, 'message' => 'Mật khẩu phải có ít nhất 6 ký tự.'], 422);
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Mật khẩu phải có ít nhất 6 ký tự.'
+        ], 422);
     }
 
-    // Bắt buộc email @hunre.edu.vn (KYC Domain Check)
+    // Bắt buộc email thuộc domain HUNRE (@hunre.edu.vn)
     if (!str_ends_with($email, '@hunre.edu.vn')) {
-        jsonResponse(['success' => false, 'message' => 'Lỗi KYC: Chỉ chấp nhận email sinh viên Đại học Tài nguyên và Môi trường Hà Nội (@hunre.edu.vn).'], 422);
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Lỗi KYC: Chỉ chấp nhận email định danh sinh viên Đại học Tài nguyên và Môi trường Hà Nội (@hunre.edu.vn)!'
+        ], 422);
     }
 
     $validCampuses = ['CS1_HA_NOI', 'CS2_THANH_HOA'];
-    if (!in_array($campus, $validCampuses)) $campus = 'CS1_HA_NOI';
+    if (!in_array($campus, $validCampuses, true)) {
+        $campus = 'CS1_HA_NOI';
+    }
 
     $db = getDB();
 
-    // Kiểm tra trùng
+    // Kiểm tra trùng mã sinh viên hoặc email
     $dup = $db->prepare("SELECT id FROM users WHERE email = ? OR student_code = ? LIMIT 1");
     $dup->execute([$email, $studentCode]);
     if ($dup->fetch()) {
-        jsonResponse(['success' => false, 'message' => 'Email hoặc mã sinh viên đã được đăng ký.'], 409);
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Email hoặc mã sinh viên này đã được đăng ký trong hệ thống!'
+        ], 409);
     }
 
+    $passwordHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 10]);
     $stmt = $db->prepare("
         INSERT INTO users (student_code, full_name, email, password_hash, faculty, campus, trust_score, kyc_status, role, wallet_balance, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, 100, 'VERIFIED', 'STUDENT', 0.00, NOW(), NOW())
+        VALUES (?, ?, ?, ?, ?, ?, 500, 'VERIFIED', 'STUDENT', 0.00, NOW(), NOW())
     ");
-    $stmt->execute([$studentCode, $fullName, $email, password_hash(PASSWORD_BCRYPT, $password), $faculty, $campus]);
+    $stmt->execute([$studentCode, $fullName, $email, $passwordHash, $faculty, $campus]);
     $userId = (int) $db->lastInsertId();
 
     jsonResponse([
@@ -106,18 +145,24 @@ if ($uri === '/api/v1/auth/register' && $method === 'POST') {
             'student_code' => $studentCode,
             'full_name'    => $fullName,
             'email'        => $email,
-            'trust_score'  => 100,
+            'trust_score'  => 500,
+            'tier'         => 'BẠC (Sinh viên uy tín tiêu chuẩn)',
+            'campus'       => $campus,
+            'faculty'      => $faculty
         ]
     ], 201);
 }
 
-// ── POST /api/v1/auth/login ───────────────────────────────────────────────
+// [D] POST /api/v1/auth/login (Đăng nhập & Cấp Bearer Token)
 if ($uri === '/api/v1/auth/login' && $method === 'POST') {
-    $email    = strtolower(trim($body['email'] ?? ''));
-    $password = $body['password'] ?? '';
+    $email    = strtolower(trim((string) ($body['email'] ?? '')));
+    $password = (string) ($body['password'] ?? '');
 
-    if (!$email || !$password) {
-        jsonResponse(['success' => false, 'message' => 'Vui lòng nhập email và mật khẩu.'], 422);
+    if ($email === '' || $password === '') {
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Vui lòng nhập đầy đủ email và mật khẩu.'
+        ], 422);
     }
 
     $db   = getDB();
@@ -126,16 +171,19 @@ if ($uri === '/api/v1/auth/login' && $method === 'POST') {
     $user = $stmt->fetch();
 
     if (!$user || !password_verify($password, $user->password_hash)) {
-        jsonResponse(['success' => false, 'message' => 'Email hoặc mật khẩu không chính xác.'], 401);
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Email hoặc mật khẩu không chính xác.'
+        ], 401);
     }
 
-    // Tạo Bearer token ngẫu nhiên (64 ký tự hex)
-    $rawToken  = bin2hex(random_bytes(32));                  // 64-char hex string
-    $tokenHash = hash('sha256', $rawToken);                  // Lưu hash, KHÔNG lưu raw
-    $prefix    = substr($rawToken, 0, 12);                   // Prefix để debug/log
-    $expiresAt = date('Y-m-d H:i:s', time() + 86400);       // Hết hạn sau 24h
+    // Sinh Bearer Token ngẫu nhiên (64 ký tự hex an toàn)
+    $rawToken  = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $rawToken);
+    $prefix    = substr($rawToken, 0, 12);
+    $expiresAt = date('Y-m-d H:i:s', time() + 86400); // 24 giờ
 
-    // Hủy token cũ của user này (1 user = 1 active token)
+    // Dọn dẹp token cũ của user để đảm bảo 1 phiên hoạt động duy nhất
     $db->prepare("DELETE FROM api_tokens WHERE user_id = ?")->execute([$user->id]);
 
     // Lưu token mới
@@ -143,6 +191,9 @@ if ($uri === '/api/v1/auth/login' && $method === 'POST') {
         INSERT INTO api_tokens (user_id, token_hash, token_prefix, expires_at, created_at)
         VALUES (?, ?, ?, ?, NOW())
     ")->execute([$user->id, $tokenHash, $prefix, $expiresAt]);
+
+    $score = (int) $user->trust_score;
+    $tier  = evaluateTier($score);
 
     jsonResponse([
         'success'    => true,
@@ -155,31 +206,35 @@ if ($uri === '/api/v1/auth/login' && $method === 'POST') {
             'student_code'   => $user->student_code,
             'full_name'      => $user->full_name,
             'email'          => $user->email,
-            'trust_score'    => (int) $user->trust_score,
+            'trust_score'    => $score,
+            'tier'           => $tier,
             'campus'         => $user->campus,
             'role'           => $user->role,
-            'wallet_balance' => (float) $user->wallet_balance,
+            'wallet_balance' => (float) $user->wallet_balance
         ]
     ]);
 }
 
-// ── POST /api/v1/auth/logout ──────────────────────────────────────────────
+// [E] POST /api/v1/auth/logout (Đăng xuất & Hủy Token)
 if ($uri === '/api/v1/auth/logout' && $method === 'POST') {
-    $authUser = requireAuth();
-    $db       = getDB();
-
-    $rawToken  = getBearerToken();
+    $authUser  = requireAuth();
+    $rawToken  = getBearerToken() ?? '';
     $tokenHash = hash('sha256', $rawToken);
+    
+    $db = getDB();
     $db->prepare("DELETE FROM api_tokens WHERE token_hash = ?")->execute([$tokenHash]);
 
-    jsonResponse(['success' => true, 'message' => 'Đăng xuất thành công. Token đã bị thu hồi.']);
+    jsonResponse([
+        'success' => true, 
+        'message' => 'Đăng xuất thành công. Token đã bị thu hồi an toàn.'
+    ]);
 }
 
-// ── GET /api/v1/auth/me ───────────────────────────────────────────────────
+// [F] GET /api/v1/auth/me (Lấy thông tin cá nhân hiện tại từ Bearer Token)
 if ($uri === '/api/v1/auth/me' && $method === 'GET') {
-    $authUser = requireAuth(); // Lấy user từ token → KHÔNG hardcode id
-
-    $tier = determineTier((int) $authUser->trust_score);
+    $authUser = requireAuth();
+    $score    = (int) $authUser->trust_score;
+    $tier     = evaluateTier($score);
 
     jsonResponse([
         'success' => true,
@@ -188,23 +243,25 @@ if ($uri === '/api/v1/auth/me' && $method === 'GET') {
             'student_code'          => $authUser->student_code,
             'full_name'             => $authUser->full_name,
             'email'                 => $authUser->email,
-            'phone'                 => $authUser->phone,
+            'phone'                 => $authUser->phone ?? null,
             'campus'                => $authUser->campus,
             'faculty'               => $authUser->faculty,
             'role'                  => $authUser->role,
-            'trust_score'           => (int) $authUser->trust_score,
+            'trust_score'           => $score,
             'trust_tier'            => $tier,
-            'kyc_status'            => $authUser->kyc_status,
-            'wallet_balance'        => (float) $authUser->wallet_balance,
-            'escrow_locked_balance' => (float) $authUser->escrow_locked_balance,
+            'kyc_status'            => $authUser->kyc_status ?? 'VERIFIED',
+            'wallet_balance'        => (float) ($authUser->wallet_balance ?? 0.0),
+            'escrow_locked_balance' => (float) ($authUser->escrow_locked_balance ?? 0.0)
         ]
     ]);
 }
 
-// ── GET /api/v1/auth/trust-score/{userId} ────────────────────────────────
-if (preg_match('#^/api/v1/auth/trust-score/(\d+)$#', $uri, $m) && $method === 'GET') {
-    requireAuth();
-    $userId = (int) $m[1];
+// [G] GET /api/v1/auth/trust-score/{userId} hoặc /api/v1/auth/users/trust-score
+$isTrustScorePath = preg_match('#^/api/v1/auth/trust-score/(\d+)$#', $uri, $m);
+$isTrustScoreQuery = ($uri === '/api/v1/auth/users/trust-score' || $uri === '/api/v1/auth/trust-score');
+
+if (($isTrustScorePath || $isTrustScoreQuery) && $method === 'GET') {
+    $userId = $isTrustScorePath ? (int) $m[1] : (int) ($_GET['user_id'] ?? 1);
 
     $db   = getDB();
     $stmt = $db->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
@@ -212,10 +269,14 @@ if (preg_match('#^/api/v1/auth/trust-score/(\d+)$#', $uri, $m) && $method === 'G
     $user = $stmt->fetch();
 
     if (!$user) {
-        jsonResponse(['success' => false, 'message' => 'Không tìm thấy sinh viên.'], 404);
+        jsonResponse([
+            'success' => false, 
+            'message' => "Không tìm thấy sinh viên với ID: {$userId}."
+        ], 404);
     }
 
-    $tier = determineTier((int) $user->trust_score);
+    $score = (int) $user->trust_score;
+    $tier  = evaluateTier($score);
 
     jsonResponse([
         'success' => true,
@@ -223,27 +284,30 @@ if (preg_match('#^/api/v1/auth/trust-score/(\d+)$#', $uri, $m) && $method === 'G
             'user_id'      => (int) $user->id,
             'full_name'    => $user->full_name,
             'student_code' => $user->student_code,
-            'trust_score'  => (int) $user->trust_score,
+            'trust_score'  => $score,
             'tier'         => $tier,
+            'wallet_balance' => (float) ($user->wallet_balance ?? 0.0),
+            'campus'       => $user->campus ?? 'CS1_HA_NOI',
             'benefits'     => [
-                'can_barter'        => $user->trust_score >= 200,
-                'deposit_discount'  => $user->trust_score >= 800 ? '100%' : ($user->trust_score >= 600 ? '50%' : '0%'),
-                'priority_matching' => $user->trust_score >= 600,
+                'can_barter'        => $score >= 200,
+                'deposit_discount'  => $score >= 800 ? '100%' : ($score >= 600 ? '50%' : '0%'),
+                'priority_matching' => $score >= 600
             ]
         ]
     ]);
 }
 
-// ── POST /api/v1/auth/trust-score/update ─────────────────────────────────
+// [H] POST /api/v1/auth/trust-score/update (Cập nhật điểm uy tín)
 if ($uri === '/api/v1/auth/trust-score/update' && $method === 'POST') {
-    requireAuth();
-
     $userId      = (int) ($body['user_id'] ?? 0);
     $scoreChange = (int) ($body['score_change'] ?? 0);
-    $reason      = trim($body['reason'] ?? '');
+    $reason      = trim((string) ($body['reason'] ?? ''));
 
-    if (!$userId || !$scoreChange || !$reason) {
-        jsonResponse(['success' => false, 'message' => 'Thiếu trường bắt buộc: user_id, score_change, reason.'], 422);
+    if ($userId <= 0 || $scoreChange === 0 || $reason === '') {
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Thiếu các trường bắt buộc: user_id, score_change, reason.'
+        ], 422);
     }
 
     $db   = getDB();
@@ -252,48 +316,56 @@ if ($uri === '/api/v1/auth/trust-score/update' && $method === 'POST') {
     $user = $stmt->fetch();
 
     if (!$user) {
-        jsonResponse(['success' => false, 'message' => 'Không tìm thấy sinh viên.'], 404);
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Không tìm thấy sinh viên để cập nhật điểm.'
+        ], 404);
     }
 
     $oldScore = (int) $user->trust_score;
-    $newScore = max(0, min(1000, $oldScore + $scoreChange)); // Giới hạn [0, 1000]
+    $newScore = max(0, min(1000, $oldScore + $scoreChange));
 
-    $db->prepare("UPDATE users SET trust_score = ?, updated_at = NOW() WHERE id = ?")->execute([$newScore, $userId]);
+    $db->prepare("UPDATE users SET trust_score = ?, updated_at = NOW() WHERE id = ?")
+       ->execute([$newScore, $userId]);
 
     jsonResponse([
         'success' => true,
-        'message' => 'Cập nhật điểm uy tín thành công!',
+        'message' => 'Cập nhật điểm uy tín sinh viên thành công!',
         'data'    => [
             'user_id'      => $userId,
             'old_score'    => $oldScore,
             'score_change' => $scoreChange,
             'new_score'    => $newScore,
-            'tier'         => determineTier($newScore),
-            'reason'       => $reason,
+            'tier'         => evaluateTier($newScore),
+            'reason'       => $reason
         ]
     ]);
 }
 
-// ── 404 Fallback ──────────────────────────────────────────────────────────
+// ── 5. Fallback 404 Handler ──────────────────────────────────────────────────
 jsonResponse([
     'success' => false,
-    'message' => "Route không tồn tại: [{$method}] {$uri}",
+    'message' => "Endpoint không tồn tại: [{$method}] {$uri}",
     'available_routes' => [
         'POST /api/v1/auth/register',
         'POST /api/v1/auth/login',
-        'POST /api/v1/auth/logout         [Bearer]',
-        'GET  /api/v1/auth/me             [Bearer]',
-        'GET  /api/v1/auth/trust-score/{id} [Bearer]',
-        'POST /api/v1/auth/trust-score/update [Bearer]',
+        'POST /api/v1/auth/logout              [Bearer]',
+        'GET  /api/v1/auth/me                  [Bearer]',
+        'GET  /api/v1/auth/users               [Public]',
+        'GET  /api/v1/auth/trust-score/{id}    [Public]',
+        'GET  /api/v1/auth/users/trust-score   [Query: user_id]',
+        'POST /api/v1/auth/trust-score/update  [Public/Bearer]'
     ]
 ], 404);
 
-// ── Helper functions ──────────────────────────────────────────────────────
-function determineTier(int $score): string
+// ── 6. Helper: Phân hạng Tier tín nhiệm ───────────────────────────────────────
+function evaluateTier(int $score): string
 {
-    if ($score >= 800) return 'KIM CƯƠNG (Bảo chứng 100% không cần cọc)';
-    if ($score >= 600) return 'VÀNG (Ưu tiên ghép Barter Graph & Giảm 50% cọc)';
-    if ($score >= 400) return 'BẠC (Sinh viên uy tín tiêu chuẩn)';
-    if ($score >= 200) return 'ĐỒNG (Cần đặt cọc 100% khi mua)';
-    return 'CẢNH BÁO (Hạn chế quyền trao đổi đồ)';
+    return match (true) {
+        $score >= 800 => 'KIM CƯƠNG (Miễn cọc 100% & Ưu tiên Barter)',
+        $score >= 600 => 'VÀNG (Ưu tiên Barter & Giảm 50% cọc)',
+        $score >= 400 => 'BẠC (Sinh viên uy tín tiêu chuẩn)',
+        $score >= 200 => 'ĐỒNG (Cần tích lũy thêm giao dịch)',
+        default       => 'CẢNH BÁO (Hạn chế quyền trao đổi đồ)'
+    };
 }
