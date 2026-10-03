@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Services\TrustScoreService;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * TRUST SCORE CONTROLLER
@@ -20,30 +24,33 @@ class TrustScoreController
     }
 
     /**
-     * Tra cứu điểm uy tín và phân hạng sinh viên
+     * Tra cứu điểm uy tín và phân hạng danh hiệu sinh viên
      */
-    public function getScore(int $userId)
+    public function getScore(int $userId): JsonResponse
     {
         $user = DB::table('users')->where('id', $userId)->first();
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy sinh viên.'], 404);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Không tìm thấy sinh viên trong hệ thống.'
+            ], 404);
         }
 
-        $tier = $this->trustScoreService->determineTier($user->trust_score);
+        $score    = (int) $user->trust_score;
+        $tier     = $this->trustScoreService->determineTier($score);
+        $benefits = $this->trustScoreService->getBenefits($score);
 
         return response()->json([
             'success' => true,
             'data'    => [
-                'user_id'      => $user->id,
-                'full_name'    => $user->full_name,
-                'student_code' => $user->student_code,
-                'trust_score'  => $user->trust_score,
-                'tier'         => $tier,
-                'benefits'     => [
-                    'can_barter'        => $user->trust_score >= 200,
-                    'deposit_discount'  => $user->trust_score >= 600 ? '50%' : ($user->trust_score >= 800 ? '100%' : '0%'),
-                    'priority_matching' => $user->trust_score >= 600
-                ]
+                'user_id'        => (int) $user->id,
+                'full_name'      => $user->full_name,
+                'student_code'   => $user->student_code,
+                'trust_score'    => $score,
+                'tier'           => $tier,
+                'wallet_balance' => (float) ($user->wallet_balance ?? 0.0),
+                'campus'         => $user->campus ?? 'CS1_HA_NOI',
+                'benefits'       => $benefits
             ]
         ]);
     }
@@ -51,21 +58,21 @@ class TrustScoreController
     /**
      * Cập nhật điểm uy tín theo sự kiện nghiệp vụ
      */
-    public function updateScore(Request $request)
+    public function updateScore(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'user_id'      => 'required|integer',
             'score_change' => 'required|integer',
-            'reason'       => 'required|string',
+            'reason'       => 'required|string|max:255',
             'order_id'     => 'nullable|integer'
         ]);
 
         try {
             $result = $this->trustScoreService->recordScoreChange(
-                $validated['user_id'],
-                $validated['score_change'],
-                $validated['reason'],
-                $validated['order_id'] ?? null
+                (int) $validated['user_id'],
+                (int) $validated['score_change'],
+                (string) $validated['reason'],
+                isset($validated['order_id']) ? (int) $validated['order_id'] : null
             );
 
             return response()->json([
@@ -73,8 +80,11 @@ class TrustScoreController
                 'message' => 'Cập nhật điểm uy tín thành công!',
                 'data'    => $result
             ]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        } catch (Throwable $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }
